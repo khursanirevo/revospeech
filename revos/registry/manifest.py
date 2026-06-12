@@ -26,6 +26,26 @@ class ModelManifest:
     files: dict[str, str] = field(default_factory=dict)
     hf_private: bool = False
     revision: str = ""
+    mode: str = "local"  # "local" | "api"
+    api_endpoint: str = ""  # URL for API backend
+    size_mb: float = 0.0  # download size in MB
+    capabilities: list[str] = field(default_factory=list)  # e.g. streaming
+    languages: list[str] = field(default_factory=list)  # e.g. ["en", "zh"]
+    tags: list[str] = field(default_factory=list)  # e.g. ["fast", "multilingual"]
+    license: str = ""  # model weight license
+    sha256: str = ""  # for download verification
+    min_ram_mb: int = 0  # minimum RAM requirement
+    min_vram_mb: int = 0  # minimum VRAM requirement
+
+    @property
+    def is_local(self) -> bool:
+        """Return True if this model runs locally."""
+        return self.mode == "local"
+
+    @property
+    def is_api(self) -> bool:
+        """Return True if this model is served via API."""
+        return self.mode == "api"
 
 
 def load_manifest(path: Path) -> ModelManifest:
@@ -52,4 +72,14 @@ def load_manifest(path: Path) -> ModelManifest:
         files=data.get("files", {}),
         hf_private=data.get("hf_private", False),
         revision=data.get("revision", ""),
+        mode=data.get("mode", "local"),
+        api_endpoint=data.get("api_endpoint", ""),
+        size_mb=data.get("size_mb", 0.0),
+        capabilities=data.get("capabilities", []),
+        languages=data.get("languages", []),
+        tags=data.get("tags", []),
+        license=data.get("license", ""),
+        sha256=data.get("sha256", ""),
+        min_ram_mb=data.get("min_ram_mb", 0),
+        min_vram_mb=data.get("min_vram_mb", 0),
     )

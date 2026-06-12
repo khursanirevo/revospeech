@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from pathlib import Path
 
 from .manifest import ModelManifest, load_manifest
@@ -12,6 +13,8 @@ logger = logging.getLogger(__name__)
 # Internal storage: (task, name) -> ModelManifest
 _models: dict[tuple[str, str], ModelManifest] = {}
 
+_registry_lock = threading.Lock()
+
 
 def register(manifest: ModelManifest) -> None:
     """Register a model manifest.
@@ -19,9 +22,10 @@ def register(manifest: ModelManifest) -> None:
     Args:
         manifest: The ModelManifest to register.
     """
-    key = (manifest.task, manifest.name)
-    _models[key] = manifest
-    logger.debug("Registered model: %s/%s", manifest.task, manifest.name)
+    with _registry_lock:
+        key = (manifest.task, manifest.name)
+        _models[key] = manifest
+        logger.debug("Registered model: %s/%s", manifest.task, manifest.name)
 
 
 def get(name: str, task: str) -> ModelManifest:
@@ -37,21 +41,21 @@ def get(name: str, task: str) -> ModelManifest:
     Raises:
         KeyError: If no model is registered with that name/task.
     """
-    key = (task, name)
-    if key not in _models:
-        available = list_models(task)
-        names = [m.name for m in available]
-        if not names:
+    with _registry_lock:
+        key = (task, name)
+        if key not in _models:
+            names = [m.name for m in _models.values() if m.task == task]
+            if not names:
+                raise KeyError(
+                    f"Model '{name}' (task={task}) not found. "
+                    f"No {task} models are registered. "
+                    f"Add a manifest in ~/.config/revos/models/{task}/"
+                )
             raise KeyError(
                 f"Model '{name}' (task={task}) not found. "
-                f"No {task} models are registered. "
-                f"Add a manifest in ~/.config/revos/models/{task}/"
+                f"Available {task} models: {names}"
             )
-        raise KeyError(
-            f"Model '{name}' (task={task}) not found. "
-            f"Available {task} models: {names}"
-        )
-    return _models[key]
+        return _models[key]
 
 
 def list_models(task: str | None = None) -> list[ModelManifest]:
@@ -63,9 +67,10 @@ def list_models(task: str | None = None) -> list[ModelManifest]:
     Returns:
         List of matching ModelManifest instances.
     """
-    if task is None:
-        return list(_models.values())
-    return [m for m in _models.values() if m.task == task]
+    with _registry_lock:
+        if task is None:
+            return list(_models.values())
+        return [m for m in _models.values() if m.task == task]
 
 
 def _load_manifests_from_dir(directory: Path) -> None:
