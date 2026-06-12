@@ -27,35 +27,58 @@ def cli() -> None:
 def transcribe(model: str, audio_path: str, as_json: bool, as_srt: bool) -> None:
     """Transcribe an audio file to text."""
     from revos.asr import ASR
+    from revos.exceptions import (
+        RevosAudioError,
+        RevosConfigError,
+        RevosEngineError,
+        RevosError,
+        RevosModelError,
+    )
 
-    asr = ASR(model)
-    result = asr.transcribe(audio_path)
+    try:
+        asr = ASR(model)
+        result = asr.transcribe(audio_path)
 
-    if as_json:
-        data = {
-            "text": result.text,
-            "segments": [
-                {
-                    "start": seg.start,
-                    "end": seg.end,
-                    "text": seg.text,
-                    "confidence": seg.confidence,
-                }
-                for seg in result.segments
-            ],
-            "language": result.language,
-        }
-        click.echo(json.dumps(data, indent=2, ensure_ascii=False))
-    elif as_srt:
-        for i, seg in enumerate(result.segments, 1):
-            start_ts = _format_srt_time(seg.start)
-            end_ts = _format_srt_time(seg.end)
-            click.echo(f"{i}")
-            click.echo(f"{start_ts} --> {end_ts}")
-            click.echo(seg.text)
-            click.echo()
-    else:
-        click.echo(result.text)
+        if as_json:
+            data = {
+                "text": result.text,
+                "segments": [
+                    {
+                        "start": seg.start,
+                        "end": seg.end,
+                        "text": seg.text,
+                        "confidence": seg.confidence,
+                    }
+                    for seg in result.segments
+                ],
+                "language": result.language,
+            }
+            click.echo(json.dumps(data, indent=2, ensure_ascii=False))
+        elif as_srt:
+            for i, seg in enumerate(result.segments, 1):
+                start_ts = _format_srt_time(seg.start)
+                end_ts = _format_srt_time(seg.end)
+                click.echo(f"{i}")
+                click.echo(f"{start_ts} --> {end_ts}")
+                click.echo(seg.text)
+                click.echo()
+        else:
+            click.echo(result.text)
+    except RevosConfigError as e:
+        click.echo(f"Configuration error: {e}", err=True)
+        raise SystemExit(1)
+    except RevosModelError as e:
+        click.echo(f"Model error: {e}", err=True)
+        raise SystemExit(1)
+    except RevosEngineError as e:
+        click.echo(f"Engine error: {e}", err=True)
+        raise SystemExit(1)
+    except RevosAudioError as e:
+        click.echo(f"Audio error: {e}", err=True)
+        raise SystemExit(1)
+    except RevosError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
 
 
 @cli.command()
@@ -84,57 +107,184 @@ def synthesize(
     ref_text: str | None,
 ) -> None:
     """Synthesize speech from text."""
+    from revos.exceptions import (
+        RevosAudioError,
+        RevosConfigError,
+        RevosEngineError,
+        RevosError,
+        RevosModelError,
+    )
     from revos.tts import TTS
 
     if text is None and file is None:
         raise click.UsageError("Either --text or --file must be provided")
 
-    if text is None and file is not None:
-        with open(file) as f:
-            text = f.read().strip()
+    try:
+        if text is None and file is not None:
+            with open(file) as f:
+                text = f.read().strip()
 
-    assert text is not None
+        assert text is not None
 
-    tts = TTS(model)
+        tts = TTS(model)
 
-    # Auto-detect long text and use synthesize_long
-    if len(text) > 500:
-        audio = tts.synthesize_long(
-            text,
-            output,
-            speed=speed,
-            ref_audio=ref_audio,
-            ref_text=ref_text,
+        # Auto-detect long text and use synthesize_long
+        if len(text) > 500:
+            audio = tts.synthesize_long(
+                text,
+                output,
+                speed=speed,
+                ref_audio=ref_audio,
+                ref_text=ref_text,
+            )
+        else:
+            audio = tts.synthesize(
+                text,
+                output,
+                speed=speed,
+                ref_audio=ref_audio,
+                ref_text=ref_text,
+            )
+        click.echo(
+            f"Saved {len(audio.samples)} samples "
+            f"({len(audio.samples) / audio.sample_rate:.1f}s) to {output}"
         )
-    else:
-        audio = tts.synthesize(
-            text,
-            output,
-            speed=speed,
-            ref_audio=ref_audio,
-            ref_text=ref_text,
-        )
-    click.echo(
-        f"Saved {len(audio.samples)} samples "
-        f"({len(audio.samples) / audio.sample_rate:.1f}s) to {output}"
-    )
+    except RevosConfigError as e:
+        click.echo(f"Configuration error: {e}", err=True)
+        raise SystemExit(1)
+    except RevosModelError as e:
+        click.echo(f"Model error: {e}", err=True)
+        raise SystemExit(1)
+    except RevosEngineError as e:
+        click.echo(f"Engine error: {e}", err=True)
+        raise SystemExit(1)
+    except RevosAudioError as e:
+        click.echo(f"Audio error: {e}", err=True)
+        raise SystemExit(1)
+    except RevosError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
 
 
 @cli.command()
-@click.option("--task", "-t", help="Filter by task type (asr or tts)")
-def models(task: str | None) -> None:
+@click.option("--task", "-t", help="Filter by task (asr/tts)")
+@click.option("--mode", "-m", help="Filter by mode (local/api)")
+@click.option("--status", "-s", "status_filter", help="Filter by status")
+@click.option("--ready", is_flag=True, help="Show only ready models")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+def models(
+    task: str | None,
+    mode: str | None,
+    status_filter: str | None,
+    ready: bool,
+    as_json: bool,
+) -> None:
     """List available models."""
-    from revos.registry import list_models
+    from revos.registry.status import list_model_statuses
 
-    results = list_models(task)
-    if not results:
+    kwargs: dict = {}
+    if task:
+        kwargs["task"] = task
+    if mode:
+        kwargs["mode"] = mode
+    if status_filter:
+        kwargs["status"] = status_filter
+    if ready:
+        kwargs["status"] = "ready"
+
+    model_list = list_model_statuses(**kwargs)
+
+    if not model_list:
         click.echo("No models found.")
         return
 
-    click.echo(f"{'Name':<20} {'Task':<6} {'Backend':<15} {'Language':<12}")
-    click.echo("-" * 53)
+    if as_json:
+        click.echo(
+            json.dumps(
+                [
+                    {
+                        "name": m.name,
+                        "task": m.task,
+                        "mode": m.mode,
+                        "status": m.status,
+                        "size_mb": m.size_mb,
+                        "capabilities": m.capabilities,
+                        "languages": m.languages,
+                    }
+                    for m in model_list
+                ],
+                indent=2,
+            )
+        )
+        return
+
+    # Status icons
+    status_icon = {"ready": "✓", "needs-download": "↓", "needs-api-key": "✗"}
+
+    # Table header
+    click.echo(
+        f"{'NAME':<20} {'TASK':<6} {'MODE':<7} {'STATUS':<16} {'SIZE':>8}  "
+        f"{'LANG':<15} {'CAPABILITIES'}"
+    )
+    click.echo("-" * 90)
+
+    for m in model_list:
+        icon = status_icon.get(m.status, "?")
+        size = f"{m.size_mb:.0f} MB" if m.size_mb else "—"
+        langs = ",".join(m.languages[:3]) if m.languages else "—"
+        caps = ",".join(m.capabilities[:3]) if m.capabilities else "—"
+        status_text = f"{icon} {m.status}"
+        click.echo(
+            f"{m.name:<20} {m.task:<6} {m.mode:<7} {status_text:<16} "
+            f"{size:>8}  {langs:<15} {caps}"
+        )
+
+
+@cli.command("models-info")
+@click.argument("name")
+def models_info(name: str) -> None:
+    """Show detailed info for a model."""
+    from revos.registry.status import check_model
+
+    try:
+        m = check_model(name)
+    except KeyError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
+
+    status_icon = {"ready": "✓", "needs-download": "↓", "needs-api-key": "✗"}
+    icon = status_icon.get(m.status, "?")
+    size = f"{m.size_mb:.0f} MB" if m.size_mb else "—"
+    langs = ", ".join(m.languages) if m.languages else "—"
+    caps = ", ".join(m.capabilities) if m.capabilities else "—"
+
+    click.echo(f"  Model:        {m.name}")
+    click.echo(f"  Task:         {m.task}")
+    click.echo(f"  Mode:         {m.mode}")
+    click.echo(f"  Status:       {icon} {m.status}")
+    click.echo(f"  Size:         {size}")
+    click.echo(f"  Languages:    {langs}")
+    click.echo(f"  Capabilities: {caps}")
+
+
+@cli.command()
+@click.argument("query")
+def search(query: str) -> None:
+    """Search models by name, tag, or language."""
+    import revos
+
+    results = revos.search_models(query)
+    if not results:
+        click.echo(f"No models matching '{query}'.")
+        return
+
+    status_icon = {"ready": "✓", "needs-download": "↓", "needs-api-key": "✗"}
     for m in results:
-        click.echo(f"{m.name:<20} {m.task:<6} {m.backend:<15} {m.language:<12}")
+        icon = status_icon.get(m.status, "?")
+        size = f"{m.size_mb:.0f} MB" if m.size_mb else "—"
+        click.echo(
+            f"  {icon} {m.name:<20} {m.task:<6} {m.mode:<7} {m.status:<16} {size}"
+        )
 
 
 @cli.command()
