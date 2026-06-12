@@ -52,7 +52,9 @@ packages = ["revos"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    "slow: requires model download and real inference",
+    "slow: marks tests as slow (requires model download)",
+    "api: marks tests requiring API key",
+    "roundtrip: marks round-trip integration tests",
 ]
 
 [tool.ruff]
