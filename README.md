@@ -10,19 +10,19 @@ A unified Python library for speech AI — ASR and TTS using open models.
 
 ```bash
 # Core (ASR support)
-pip install revos
+pip install revospeech
 
 # With TTS support (RevoVoice — requires PyTorch)
-pip install revos[tts]
+pip install revospeech[tts]
 
 # With GPU support
-pip install revos[gpu]
+pip install revospeech[gpu]
 
 # Everything (GPU + TTS)
-pip install revos[all]
+pip install revospeech[all]
 
 # Or with uv
-uv add revos
+uv add revospeech
 ```
 
 ### HuggingFace Login (Required for TTS)
@@ -38,7 +38,7 @@ Get your token at https://huggingface.co/settings/tokens
 
 ### Important Notes
 
-- `revos[gpu]` and `revos[all]` install `onnxruntime-gpu`, which **conflicts** with `onnxruntime`. If you already have `revos` installed, uninstall it first before installing the GPU variant.
+- `revospeech[gpu]` and `revospeech[all]` install `onnxruntime-gpu`, which **conflicts** with `onnxruntime`. If you already have `revos` installed, uninstall it first before installing the GPU variant before installing the GPU variant.
 - Audio formats supported: WAV, FLAC, OGG, and any format supported by `libsndfile`.
 
 ## Quick Start

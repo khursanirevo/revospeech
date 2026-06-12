@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "revos"
+name = "revospeech"
 version = "0.1.0"
 description = "A unified Python library for speech AI — ASR and TTS using open models"
 readme = "README.md"
