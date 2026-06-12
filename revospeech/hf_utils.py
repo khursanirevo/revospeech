@@ -54,8 +54,10 @@ def wrap_hf_error(error: Exception, repo_id: str) -> Exception:
             f"Then wait for the repository owner to approve."
         )
     if (
-        "401" in err or "authentication" in err
-        or "credentials" in err or "gated" in err
+        "401" in err
+        or "authentication" in err
+        or "credentials" in err
+        or "gated" in err
     ):
         return RuntimeError(
             f"Cannot access model '{repo_id}' — "
