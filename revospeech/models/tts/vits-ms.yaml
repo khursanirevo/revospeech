@@ -1,0 +1,24 @@
+name: vits-ms
+task: tts
+mode: local
+backend: vits
+model_type: vits
+model_url: "Revolab/vits"
+sample_rate: 22050
+language: ms
+description: "VITS multi-speaker Malay TTS (5 production speakers: sarah, pendakwah, paan, anwar, pendakwah_teknologi)"
+hf_private: true
+size_mb: 500.0
+capabilities:
+  - multi-speaker
+languages:
+  - ms
+tags:
+  - malay
+  - multi-speaker
+  - cpu-friendly
+  - fast
+license: "MIT"
+min_ram_mb: 512
+min_vram_mb: 0
+files: {}

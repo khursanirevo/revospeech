@@ -58,9 +58,14 @@ def TTS(model_name: str, device: str = "auto") -> BaseTTS:
 
         return RevoVoiceTTS(model_name, device)
 
+    if manifest.backend == "vits":
+        from .vits_engine import VitsTTS
+
+        return VitsTTS(model_name, device)
+
     raise ValueError(
         f"Unsupported TTS backend: '{manifest.backend}' for model "
-        f"'{model_name}'. Supported backends: revovoice"
+        f"'{model_name}'. Supported backends: revovoice, vits"
     )
 
 
