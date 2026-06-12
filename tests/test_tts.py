@@ -152,6 +152,77 @@ def test_revovoice_engine_gated_error(mock_hf_user):
             RevoVoiceTTS("gated-tts", device="cpu")
 
 
+def _register_vits():
+    from revospeech.registry.registry import register
+
+    register(
+        ModelManifest(
+            name="test-vits",
+            task="tts",
+            backend="vits",
+            model_type="vits",
+            model_url="TestOrg/vits-test",
+            sample_rate=22050,
+            language="ms",
+            description="Test VITS TTS",
+            files={},
+        )
+    )
+
+
+@patch("revospeech.tts.vits_engine._phonemize_espeak", return_value=["s", "a", "l", "a", "m"])
+def test_vits_engine_synthesize(mock_phonemize, tmp_path):
+    mock_sess = MagicMock()
+    mock_sess.run.return_value = [np.zeros((1, 1, 22050), dtype=np.float32)]
+    mock_phoneme_map = {"^": 1, "$": 2, "s": 3, "a": 4, "l": 5}
+
+    _register_vits()
+    with patch("revospeech.tts.vits_engine.VitsTTS._load_speaker", return_value=(mock_sess, mock_phoneme_map)):
+        from revospeech.tts.vits_engine import VitsTTS
+
+        engine = VitsTTS("test-vits")
+        result = engine.synthesize("Salam")
+
+    assert isinstance(result, Audio)
+    assert result.sample_rate == 22050
+    mock_sess.run.assert_called_once()
+
+
+@patch("revospeech.tts.vits_engine._phonemize_espeak", return_value=[])
+def test_vits_engine_save_to_file(mock_phonemize, tmp_path):
+    mock_sess = MagicMock()
+    mock_sess.run.return_value = [np.zeros((1, 1, 8000), dtype=np.float32)]
+    mock_phoneme_map = {"^": 1, "$": 2}
+
+    _register_vits()
+    with patch("revospeech.tts.vits_engine.VitsTTS._load_speaker", return_value=(mock_sess, mock_phoneme_map)):
+        from revospeech.tts.vits_engine import VitsTTS
+
+        engine = VitsTTS("test-vits")
+        out_path = str(tmp_path / "vits_out.wav")
+        engine.synthesize("test", output_path=out_path)
+
+    assert (tmp_path / "vits_out.wav").exists()
+
+
+def test_vits_engine_unknown_speaker():
+    _register_vits()
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = VitsTTS("test-vits")
+    with pytest.raises(ValueError, match="Unknown speaker"):
+        engine.synthesize("test", speaker="nonexistent")
+
+
+def test_vits_factory_dispatch():
+    _register_vits()
+    from revospeech.tts import TTS
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = TTS("test-vits")
+    assert isinstance(engine, VitsTTS)
+
+
 def test_tts_unsupported_backend():
     """Test that unsupported backend raises ValueError."""
     from revospeech.registry.registry import register
@@ -170,5 +241,5 @@ def test_tts_unsupported_backend():
     )
     from revospeech.tts import TTS
 
-    with pytest.raises(ValueError, match="Supported backends: revovoice"):
+    with pytest.raises(ValueError, match="Supported backends: revovoice, vits"):
         TTS("bad-backend")
