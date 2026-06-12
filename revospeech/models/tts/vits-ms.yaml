@@ -6,7 +6,7 @@ model_type: vits
 model_url: "Revolab/vits"
 sample_rate: 22050
 language: ms
-description: "VITS multi-speaker Malay TTS (5 production speakers: sarah, pendakwah, paan, anwar, pendakwah_teknologi)"
+description: "VITS multi-speaker Malay TTS (3 production speakers: sarah, paan, anwar)"
 hf_private: true
 size_mb: 500.0
 capabilities:

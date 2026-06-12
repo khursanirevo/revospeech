@@ -157,7 +157,7 @@ def _make_mock_omnivoice():
     return mock_module, mock_cls, mock_model
 
 
-@patch("revospeech.tts.revovoice_engine._get_hf_user", return_value=None)
+@patch("revospeech.hf_utils.get_hf_user", return_value=None)
 def test_synthesize_long(mock_hf_user):
     """synthesize_long splits text and returns concatenated audio."""
     from revospeech.registry.manifest import ModelManifest
@@ -199,7 +199,7 @@ def test_synthesize_long(mock_hf_user):
     assert mock_model.generate.call_count >= 2
 
 
-@patch("revospeech.tts.revovoice_engine._get_hf_user", return_value=None)
+@patch("revospeech.hf_utils.get_hf_user", return_value=None)
 def test_synthesize_long_saves_to_file(mock_hf_user, tmp_path: Path):
     """synthesize_long saves concatenated audio to file."""
     from revospeech.registry.manifest import ModelManifest
@@ -238,7 +238,7 @@ def test_synthesize_long_saves_to_file(mock_hf_user, tmp_path: Path):
     assert result.duration > 0
 
 
-@patch("revospeech.tts.revovoice_engine._get_hf_user", return_value=None)
+@patch("revospeech.hf_utils.get_hf_user", return_value=None)
 def test_synthesize_long_empty_raises(mock_hf_user):
     """synthesize_long raises on empty text."""
     from revospeech.registry.manifest import ModelManifest
