@@ -128,9 +128,7 @@ class BaseTTS(ABC):
         Raises:
             NotImplementedError: This engine does not support streaming.
         """
-        raise NotImplementedError(
-            "This engine does not support streaming synthesis"
-        )
+        raise NotImplementedError("This engine does not support streaming synthesis")
 
     @abstractmethod
     def synthesize(
@@ -191,9 +189,7 @@ class BaseTTS(ABC):
         if not chunks:
             raise ValueError("Text is empty — nothing to synthesize")
 
-        logger.info(
-            "synthesize_long: splitting into %d chunk(s)", len(chunks)
-        )
+        logger.info("synthesize_long: splitting into %d chunk(s)", len(chunks))
 
         segments: list[Audio] = []
         for i, chunk in enumerate(chunks):

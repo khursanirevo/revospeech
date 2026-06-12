@@ -181,8 +181,7 @@ def test_synthesize_long(mock_hf_user):
     mock_module, _, mock_model = _make_mock_omnivoice()
     # Return different audio each call
     mock_model.generate.side_effect = [
-        [np.random.randn(24000).astype(np.float32) * 0.1]
-        for _ in range(10)
+        [np.random.randn(24000).astype(np.float32) * 0.1] for _ in range(10)
     ]
 
     text = (
@@ -223,8 +222,7 @@ def test_synthesize_long_saves_to_file(mock_hf_user, tmp_path: Path):
 
     mock_module, _, mock_model = _make_mock_omnivoice()
     mock_model.generate.side_effect = [
-        [np.random.randn(24000).astype(np.float32) * 0.1]
-        for _ in range(10)
+        [np.random.randn(24000).astype(np.float32) * 0.1] for _ in range(10)
     ]
 
     with patch.dict(sys.modules, {"omnivoice": mock_module}):

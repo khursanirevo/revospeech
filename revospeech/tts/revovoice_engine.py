@@ -44,8 +44,7 @@ class RevoVoiceTTS(BaseTTS):
             from omnivoice import OmniVoice  # type: ignore[import-untyped]
         except ImportError as e:
             raise ImportError(
-                "RevoVoice is required for TTS. "
-                "Install it with: pip install revos[tts]"
+                "RevoVoice is required for TTS. Install it with: pip install revos[tts]"
             ) from e
 
         manifest = get(model_name, "tts")
@@ -76,9 +75,7 @@ class RevoVoiceTTS(BaseTTS):
         # Identify the HF user for gated model tracking
         self.hf_user = _get_hf_user()
         if self.hf_user:
-            logger.info(
-                "Authenticated as HuggingFace user: %s", self.hf_user
-            )
+            logger.info("Authenticated as HuggingFace user: %s", self.hf_user)
         else:
             logger.warning(
                 "HuggingFace user not identified. "

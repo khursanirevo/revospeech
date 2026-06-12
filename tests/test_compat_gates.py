@@ -1,4 +1,5 @@
 """Backward-compatibility gate tests. These MUST pass after every change."""
+
 from pathlib import Path
 
 

@@ -347,15 +347,13 @@ def catalog_list(task: str | None) -> None:
         return
 
     click.echo(
-        f"{'Name':<20} {'Task':<6} {'Backend':<15} "
-        f"{'Language':<12} {'Version':<12}"
+        f"{'Name':<20} {'Task':<6} {'Backend':<15} {'Language':<12} {'Version':<12}"
     )
     click.echo("-" * 65)
     for m in results:
         rev = m.revision or "latest"
         click.echo(
-            f"{m.name:<20} {m.task:<6} {m.backend:<15} "
-            f"{m.language:<12} {rev:<12}"
+            f"{m.name:<20} {m.task:<6} {m.backend:<15} {m.language:<12} {rev:<12}"
         )
     click.echo("\nUse 'revos catalog pull <name>' to install.")
 

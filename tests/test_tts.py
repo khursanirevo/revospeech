@@ -142,9 +142,7 @@ def test_revovoice_engine_gated_error(mock_hf_user):
 
     mock_module = ModuleType("omnivoice")
     mock_cls = MagicMock()
-    mock_cls.from_pretrained.side_effect = OSError(
-        "gated repo, please authenticate"
-    )
+    mock_cls.from_pretrained.side_effect = OSError("gated repo, please authenticate")
     mock_module.OmniVoice = mock_cls
 
     with patch.dict(sys.modules, {"omnivoice": mock_module}):

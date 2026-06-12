@@ -52,8 +52,7 @@ class Audio:
         rates = {s.sample_rate for s in segments}
         if len(rates) > 1:
             raise ValueError(
-                f"All segments must have the same sample rate, "
-                f"got: {rates}"
+                f"All segments must have the same sample rate, got: {rates}"
             )
 
         sr = segments[0].sample_rate

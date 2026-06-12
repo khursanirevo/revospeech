@@ -71,8 +71,14 @@ class TestASRIntegration:
         wav_path = _make_wav(tmp_path / "test.wav")
         result = subprocess.run(
             [
-                "uv", "run", "revos", "transcribe",
-                "-m", "zipformer-v2", "--json", wav_path,
+                "uv",
+                "run",
+                "revos",
+                "transcribe",
+                "-m",
+                "zipformer-v2",
+                "--json",
+                wav_path,
             ],
             capture_output=True,
             text=True,
@@ -91,8 +97,14 @@ class TestASRIntegration:
         wav_path = _make_wav(tmp_path / "test.wav")
         result = subprocess.run(
             [
-                "uv", "run", "revos", "transcribe",
-                "-m", "zipformer-v2", "--srt", wav_path,
+                "uv",
+                "run",
+                "revos",
+                "transcribe",
+                "-m",
+                "zipformer-v2",
+                "--srt",
+                wav_path,
             ],
             capture_output=True,
             text=True,
@@ -120,6 +132,7 @@ class TestASRIntegration:
 
 # --- TTS Integration ---
 
+
 class TestTTSIntegration:
     """Real TTS tests using revovoice model.
 
@@ -132,11 +145,11 @@ class TestTTSIntegration:
         """Skip tests if not authenticated to HuggingFace."""
         try:
             from huggingface_hub import HfApi
+
             HfApi().whoami()
         except Exception:
             pytest.skip(
-                "HuggingFace not authenticated. "
-                "Run 'huggingface-cli login' first."
+                "HuggingFace not authenticated. Run 'huggingface-cli login' first."
             )
 
     def test_model_loads(self):
@@ -182,9 +195,7 @@ class TestTTSIntegration:
             "Here is another sentence. "
             "And a third sentence for good measure."
         )
-        audio = tts.synthesize_long(
-            text, max_chars=40, silence_duration=0.05
-        )
+        audio = tts.synthesize_long(text, max_chars=40, silence_duration=0.05)
 
         assert audio.sample_rate == 24000
         assert audio.duration > 1.0  # Should be multiple seconds
@@ -210,10 +221,16 @@ class TestTTSIntegration:
         out_path = str(tmp_path / "cli_output.wav")
         result = subprocess.run(
             [
-                "uv", "run", "revos", "synthesize",
-                "-m", "revovoice",
-                "-t", "Hello from the CLI.",
-                "-o", out_path,
+                "uv",
+                "run",
+                "revos",
+                "synthesize",
+                "-m",
+                "revovoice",
+                "-t",
+                "Hello from the CLI.",
+                "-o",
+                out_path,
             ],
             capture_output=True,
             text=True,
@@ -236,10 +253,16 @@ class TestTTSIntegration:
         out_path = str(tmp_path / "cli_long_output.wav")
         result = subprocess.run(
             [
-                "uv", "run", "revos", "synthesize",
-                "-m", "revovoice",
-                "-t", long_text,
-                "-o", out_path,
+                "uv",
+                "run",
+                "revos",
+                "synthesize",
+                "-m",
+                "revovoice",
+                "-t",
+                long_text,
+                "-o",
+                out_path,
             ],
             capture_output=True,
             text=True,
@@ -282,6 +305,7 @@ class TestCatalogIntegration:
 
         models_dir = tmp_path / "models"
         import revos.catalog as cat_mod
+
         original = cat_mod._USER_MODELS_DIR
 
         cat_mod._USER_MODELS_DIR = models_dir

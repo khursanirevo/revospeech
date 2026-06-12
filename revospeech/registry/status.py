@@ -1,4 +1,5 @@
 """Model status and discovery helpers."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

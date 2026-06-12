@@ -28,9 +28,7 @@ def _progress_hook(block_num: int, block_size: int, total_size: int) -> None:
         mb_total = total_size / (1024 * 1024)
         filled = bar_width * pct // 100
         bar = "=" * filled + "-" * (bar_width - filled)
-        sys.stderr.write(
-            f"\r  [{bar}] {pct:3d}% {mb_down:.1f}/{mb_total:.1f} MB"
-        )
+        sys.stderr.write(f"\r  [{bar}] {pct:3d}% {mb_down:.1f}/{mb_total:.1f} MB")
         sys.stderr.flush()
         if pct >= 100:
             sys.stderr.write("\n")
@@ -70,9 +68,7 @@ def _extract_zip_safe(archive_path: Path, dest_dir: Path) -> None:
         for member in zf.infolist():
             member_dest = (dest_dir / member.filename).resolve()
             if not str(member_dest).startswith(str(dest_resolved)):
-                raise ValueError(
-                    f"Unsafe path in zip archive: {member.filename}"
-                )
+                raise ValueError(f"Unsafe path in zip archive: {member.filename}")
             zf.extract(member, dest_dir)
 
 
@@ -88,9 +84,7 @@ def _find_model_dir(extract_dir: Path, manifest: ModelManifest) -> Path:
 
     # Check one level down (common pattern: archive extracts to subfolder)
     for subdir in extract_dir.iterdir():
-        if subdir.is_dir() and all(
-            (subdir / f).exists() for f in expected_files
-        ):
+        if subdir.is_dir() and all((subdir / f).exists() for f in expected_files):
             return subdir
 
     # Return extract_dir as fallback

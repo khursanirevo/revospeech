@@ -104,9 +104,7 @@ def _list_yaml_files(repo: str, path: str) -> list[str]:
 
     files: list[str] = []
     for entry in data:
-        if entry["type"] == "file" and entry["name"].endswith(
-            (".yaml", ".yml")
-        ):
+        if entry["type"] == "file" and entry["name"].endswith((".yaml", ".yml")):
             files.append(entry["path"])
         elif entry["type"] == "dir":
             # Recurse into subdirectories (asr/, tts/)
@@ -120,13 +118,8 @@ def _download_raw(repo: str, path: str) -> str:
     Returns:
         File content as string.
     """
-    url = (
-        f"https://raw.githubusercontent.com/{repo}/"
-        f"HEAD/{path}"
-    )
-    data = _urlopen_with_retry(
-        url, headers={"User-Agent": "revos-catalog"}
-    )
+    url = f"https://raw.githubusercontent.com/{repo}/HEAD/{path}"
+    data = _urlopen_with_retry(url, headers={"User-Agent": "revos-catalog"})
     return data.decode("utf-8")
 
 
@@ -173,9 +166,7 @@ def list_catalog(task: str | None = None) -> list[ModelManifest]:
 
         manifests: list[ModelManifest] = []
         for entry in cached:
-            if task and not entry.get("path", "").startswith(
-                f"revos/models/{task}/"
-            ):
+            if task and not entry.get("path", "").startswith(f"revos/models/{task}/"):
                 continue
             try:
                 with tempfile.NamedTemporaryFile(
@@ -205,9 +196,7 @@ def list_catalog(task: str | None = None) -> list[ModelManifest]:
         ) from e
 
     if task:
-        yaml_files = [
-            f for f in yaml_files if f.startswith(f"revos/models/{task}/")
-        ]
+        yaml_files = [f for f in yaml_files if f.startswith(f"revos/models/{task}/")]
 
     manifests = []
     raw_entries: list[dict] = []
@@ -229,9 +218,7 @@ def list_catalog(task: str | None = None) -> list[ModelManifest]:
             manifests.append(manifest)
             raw_entries.append({"path": yaml_path, "content": content})
         except Exception as e:
-            logger.warning(
-                "Failed to load catalog entry %s: %s", yaml_path, e
-            )
+            logger.warning("Failed to load catalog entry %s: %s", yaml_path, e)
 
     _save_cached_catalog(raw_entries, repo)
 
@@ -260,10 +247,7 @@ def pull_model(name: str) -> Path:
     try:
         yaml_files = _list_yaml_files(repo, "revos/models")
     except Exception as e:
-        raise RuntimeError(
-            f"Cannot fetch catalog from '{repo}'. "
-            f"Error: {e}"
-        ) from e
+        raise RuntimeError(f"Cannot fetch catalog from '{repo}'. Error: {e}") from e
 
     target_file = None
     target_manifest = None

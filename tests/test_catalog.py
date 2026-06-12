@@ -33,9 +33,7 @@ def test_get_catalog_repo_default():
             mock_config = MagicMock()
             mock_config.exists.return_value = False
             mock_path.home.return_value.__truediv__ = MagicMock(
-                return_value=MagicMock(
-                    __truediv__=MagicMock(return_value=mock_config)
-                )
+                return_value=MagicMock(__truediv__=MagicMock(return_value=mock_config))
             )
             assert get_catalog_repo() == DEFAULT_CATALOG_REPO
 

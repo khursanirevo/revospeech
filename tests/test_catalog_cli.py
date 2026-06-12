@@ -119,9 +119,7 @@ def test_catalog_pull_command(mock_list, mock_download, runner, tmp_path):
 
     models_dir = tmp_path / "models"
     with patch("revospeech.catalog._USER_MODELS_DIR", models_dir):
-        result = runner.invoke(
-            cli, ["catalog", "pull", "revovoice"]
-        )
+        result = runner.invoke(cli, ["catalog", "pull", "revovoice"])
 
     assert result.exit_code == 0
     assert "Installed" in result.output

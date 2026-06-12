@@ -18,5 +18,3 @@ def sample_wav(tmp_path: Path) -> str:
     wav_path = tmp_path / "test.wav"
     sf.write(str(wav_path), samples, sr)
     return str(wav_path)
-
-
