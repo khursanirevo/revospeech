@@ -1,8 +1,8 @@
-# RevoS
+# RevoSpeech
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/revos/revospeech/ci.yml?branch=master)](.github/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/khursanirevo/revospeech/ci.yml?branch=master)](.github/workflows/ci.yml)
 
 A unified Python library for speech AI — ASR and TTS using open models.
 
@@ -176,7 +176,7 @@ and require approval before use.
    tts = TTS('revovoice')  # Will prompt for HF login if not authenticated
    ```
 
-> **For team members adding models:** If your model is gated, set `hf_private: true` in the YAML manifest. This tells RevoS to check HF authentication before downloading.
+> **For team members adding models:** If your model is gated, set `hf_private: true` in the YAML manifest. This tells RevoSpeech to check HF authentication before downloading.
 
 ## Configuration
 

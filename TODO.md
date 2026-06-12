@@ -148,7 +148,7 @@
 
 - [x] Fix `hf_user` type inconsistency in `usage.py` (`str | None`)
 - [ ] Remove dead test fixtures (`mock_recognizer`, `mock_tts_model` in conftest.py)
-- [ ] Update catalog default repo from `khursanirevo/revos` to revolab org
+- [ ] Update catalog default repo from `khursanirevo/revospeech` to revolab org
 
 ---
 
