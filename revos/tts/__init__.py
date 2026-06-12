@@ -34,6 +34,25 @@ def TTS(model_name: str, device: str = "auto") -> BaseTTS:
     """
     manifest = get(model_name, "tts")
 
+    # API-mode gate: validate key, then raise (API engine not yet implemented)
+    if manifest.is_api:
+        from revos.config import get_api_key
+        from revos.exceptions import RevosConfigError
+
+        api_key = get_api_key()
+        if not api_key:
+            raise RevosConfigError(
+                f"Model '{model_name}' requires an API key.",
+                suggestion=(
+                    "Set your API key: export REVOLAB_API_KEY=your-key"
+                    " or run: revos config set-api-key"
+                ),
+            )
+        raise NotImplementedError(
+            f"API backend for '{model_name}' is not yet implemented. "
+            f"Contributing guide: see CONTRIBUTING.md"
+        )
+
     if manifest.backend == "revovoice":
         from .revovoice_engine import RevoVoiceTTS
 

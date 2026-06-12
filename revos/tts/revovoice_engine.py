@@ -14,21 +14,18 @@ from .result import Audio
 logger = logging.getLogger(__name__)
 
 
-def _get_hf_user() -> dict | None:
-    """Get the current HuggingFace user info from their token.
+def _get_hf_user() -> str | None:
+    """Get the current HuggingFace username from their token.
 
     Returns:
-        Dict with 'name' and 'token' keys, or None if not authenticated.
+        HuggingFace username, or None if not authenticated.
     """
     try:
         from huggingface_hub import HfApi
 
         api = HfApi()
         info = api.whoami()
-        return {
-            "name": info.get("name", "unknown"),
-            "fullname": info.get("fullname", ""),
-        }
+        return info.get("name", "unknown")
     except Exception:
         return None
 
@@ -80,7 +77,7 @@ class RevoVoiceTTS(BaseTTS):
         self.hf_user = _get_hf_user()
         if self.hf_user:
             logger.info(
-                "Authenticated as HuggingFace user: %s", self.hf_user["name"]
+                "Authenticated as HuggingFace user: %s", self.hf_user
             )
         else:
             logger.warning(

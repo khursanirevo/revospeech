@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
@@ -21,8 +22,13 @@ UsageCallback = Callable[[dict], None]
 # Registered callbacks
 _callbacks: list[UsageCallback] = []
 
+# Thread safety locks
+_callbacks_lock = threading.Lock()
+_file_lock = threading.Lock()
+
 # Local usage log path
 _USAGE_LOG = Path.home() / ".cache" / "revos" / "usage.jsonl"
+_MAX_LOG_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
 def register_callback(callback: UsageCallback) -> None:
@@ -40,12 +46,23 @@ def register_callback(callback: UsageCallback) -> None:
     Args:
         callback: Function that takes a usage dict.
     """
-    _callbacks.append(callback)
+    with _callbacks_lock:
+        _callbacks.append(callback)
 
 
 def _log_to_local(usage: dict) -> None:
-    """Append usage event to local JSONL log."""
+    """Append usage event to local JSONL log.
+
+    Rotates the log file to ``usage.jsonl.1`` when it exceeds 10 MB.
+    """
     _USAGE_LOG.parent.mkdir(parents=True, exist_ok=True)
+
+    if _USAGE_LOG.exists() and os.path.getsize(_USAGE_LOG) > _MAX_LOG_SIZE:
+        rotated = _USAGE_LOG.with_suffix(".jsonl.1")
+        if rotated.exists():
+            rotated.unlink()
+        os.replace(_USAGE_LOG, rotated)
+
     with open(_USAGE_LOG, "a") as f:
         f.write(json.dumps(usage, default=str) + "\n")
     os.chmod(_USAGE_LOG, 0o600)
@@ -56,7 +73,7 @@ def track_usage(
     model_id: str,
     model_name: str,
     task: str,
-    hf_user: dict | None,
+    hf_user: str | None,
     device: str,
     **extra: object,
 ) -> None:
@@ -67,7 +84,7 @@ def track_usage(
         model_id: HuggingFace model ID.
         model_name: RevoS model name.
         task: "asr" or "tts".
-        hf_user: HF user info dict (or None).
+        hf_user: HuggingFace username (or None).
         device: Device used ("cpu" or "cuda").
         **extra: Additional data to include.
     """
@@ -76,17 +93,20 @@ def track_usage(
         "model_id": model_id,
         "model_name": model_name,
         "task": task,
-        "hf_user": hf_user["name"] if hf_user else None,
+        "hf_user": hf_user,
         "device": device,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         **extra,
     }
 
     # Always log locally
-    _log_to_local(usage)
+    with _file_lock:
+        _log_to_local(usage)
 
     # Notify registered callbacks
-    for callback in _callbacks:
+    with _callbacks_lock:
+        callbacks_snapshot = list(_callbacks)
+    for callback in callbacks_snapshot:
         try:
             callback(usage)
         except Exception as e:

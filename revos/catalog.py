@@ -13,11 +13,12 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
-import yaml
-
+from .config import load_config
 from .registry.manifest import ModelManifest, load_manifest
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,10 @@ _GITHUB_API = "https://api.github.com/repos"
 
 # Local user models directory
 _USER_MODELS_DIR = Path.home() / ".config" / "revos" / "models"
+
+# Catalog cache
+_CACHE_FILE = Path.home() / ".cache" / "revos" / "catalog_cache.json"
+_CACHE_TTL = 3600  # 1 hour in seconds
 
 
 def get_catalog_repo() -> str:
@@ -47,30 +52,45 @@ def get_catalog_repo() -> str:
     if env_repo:
         return env_repo
 
-    config_path = Path.home() / ".config" / "revos" / "config.yaml"
-    if config_path.exists():
-        try:
-            with open(config_path) as f:
-                config = yaml.safe_load(f) or {}
-            if "catalog_repo" in config:
-                return config["catalog_repo"]
-        except Exception:
-            pass
+    config = load_config()
+    if "catalog_repo" in config:
+        return config["catalog_repo"]
 
     return DEFAULT_CATALOG_REPO
 
 
+def _urlopen_with_retry(
+    url: str,
+    headers: dict[str, str] | None = None,
+    retries: int = 3,
+    timeout: int = 10,
+    backoff: float = 1.0,
+) -> bytes:
+    """Open a URL with retry and timeout."""
+    last_error: Exception | None = None
+    for attempt in range(retries):
+        try:
+            req = urllib.request.Request(url, headers=headers or {})
+            resp = urllib.request.urlopen(req, timeout=timeout)
+            return resp.read()
+        except (urllib.error.URLError, OSError) as e:
+            last_error = e
+            if attempt < retries - 1:
+                time.sleep(backoff * (2**attempt))
+    raise RuntimeError(
+        f"Failed to fetch {url} after {retries} attempts: {last_error}"
+    ) from last_error
+
+
 def _github_api_get(url: str) -> bytes:
     """Fetch data from GitHub API with proper headers."""
-    req = urllib.request.Request(
+    return _urlopen_with_retry(
         url,
         headers={
             "Accept": "application/vnd.github.v3+json",
             "User-Agent": "revos-catalog",
         },
     )
-    with urllib.request.urlopen(req) as resp:
-        return resp.read()
 
 
 def _list_yaml_files(repo: str, path: str) -> list[str]:
@@ -104,11 +124,33 @@ def _download_raw(repo: str, path: str) -> str:
         f"https://raw.githubusercontent.com/{repo}/"
         f"HEAD/{path}"
     )
-    req = urllib.request.Request(
+    data = _urlopen_with_retry(
         url, headers={"User-Agent": "revos-catalog"}
     )
-    with urllib.request.urlopen(req) as resp:
-        return resp.read().decode("utf-8")
+    return data.decode("utf-8")
+
+
+def _load_cached_catalog(repo: str) -> list[dict] | None:
+    """Load cached catalog if it exists, is fresh, and matches the repo."""
+    if not _CACHE_FILE.exists():
+        return None
+    try:
+        data = json.loads(_CACHE_FILE.read_text())
+        if data.get("repo") != repo:
+            return None
+        cached_at = data.get("cached_at", 0)
+        if time.time() - cached_at < _CACHE_TTL:
+            return data.get("manifests")
+    except (json.JSONDecodeError, KeyError, OSError):
+        pass
+    return None
+
+
+def _save_cached_catalog(manifests: list[dict], repo: str) -> None:
+    """Save catalog to cache."""
+    _CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    data = {"cached_at": time.time(), "repo": repo, "manifests": manifests}
+    _CACHE_FILE.write_text(json.dumps(data, default=str))
 
 
 def list_catalog(task: str | None = None) -> list[ModelManifest]:
@@ -123,7 +165,35 @@ def list_catalog(task: str | None = None) -> list[ModelManifest]:
     Raises:
         RuntimeError: If catalog cannot be reached.
     """
+    # Check cache first
     repo = get_catalog_repo()
+    cached = _load_cached_catalog(repo)
+    if cached is not None:
+        import tempfile
+
+        manifests: list[ModelManifest] = []
+        for entry in cached:
+            if task and not entry.get("path", "").startswith(
+                f"revos/models/{task}/"
+            ):
+                continue
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".yaml", delete=False
+                ) as tmp:
+                    tmp.write(entry["content"])
+                    tmp_path = Path(tmp.name)
+
+                manifest = load_manifest(tmp_path)
+                tmp_path.unlink(missing_ok=True)
+                manifests.append(manifest)
+            except Exception as e:
+                logger.warning(
+                    "Failed to load cached entry %s: %s",
+                    entry.get("path"),
+                    e,
+                )
+        return manifests
 
     try:
         yaml_files = _list_yaml_files(repo, "revos/models")
@@ -139,11 +209,13 @@ def list_catalog(task: str | None = None) -> list[ModelManifest]:
             f for f in yaml_files if f.startswith(f"revos/models/{task}/")
         ]
 
-    manifests: list[ModelManifest] = []
+    manifests = []
+    raw_entries: list[dict] = []
+    import tempfile
+
     for yaml_path in yaml_files:
         try:
             content = _download_raw(repo, yaml_path)
-            import tempfile
 
             # Write to temp file to use load_manifest
             with tempfile.NamedTemporaryFile(
@@ -155,10 +227,13 @@ def list_catalog(task: str | None = None) -> list[ModelManifest]:
             manifest = load_manifest(tmp_path)
             tmp_path.unlink(missing_ok=True)
             manifests.append(manifest)
+            raw_entries.append({"path": yaml_path, "content": content})
         except Exception as e:
             logger.warning(
                 "Failed to load catalog entry %s: %s", yaml_path, e
             )
+
+    _save_cached_catalog(raw_entries, repo)
 
     return manifests
 

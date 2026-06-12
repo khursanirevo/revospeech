@@ -115,6 +115,23 @@ class BaseTTS(ABC):
         self.model_name = model_name
         self.device = device
 
+    def synthesize_streaming(self, text: str, **kwargs):
+        """Stream synthesis of text to audio.
+
+        Override in subclasses that support streaming synthesis.
+        The default implementation raises NotImplementedError.
+
+        Args:
+            text: Text to synthesize.
+            **kwargs: Engine-specific streaming options.
+
+        Raises:
+            NotImplementedError: This engine does not support streaming.
+        """
+        raise NotImplementedError(
+            "This engine does not support streaming synthesis"
+        )
+
     @abstractmethod
     def synthesize(
         self,
