@@ -1,11 +1,24 @@
 name: zipformer-v2
 task: asr
+mode: local
 backend: sherpa-onnx
 model_type: transducer
 model_url: "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-zipformer-small-en-2023-06-26.tar.bz2"
 sample_rate: 16000
 language: en
 description: "Zipformer small English transducer ASR model via sherpa-onnx"
+size_mb: 80.0
+capabilities:
+  - word-timestamps
+languages:
+  - en
+tags:
+  - fast
+  - english
+  - cpu-friendly
+license: "Apache-2.0"
+min_ram_mb: 1024
+min_vram_mb: 0
 files:
   encoder: "encoder-epoch-99-avg-1.onnx"
   decoder: "decoder-epoch-99-avg-1.onnx"

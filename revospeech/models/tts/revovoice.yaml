@@ -1,5 +1,6 @@
 name: revovoice
 task: tts
+mode: local
 backend: revovoice
 model_type: diffusion
 model_url: "Revolab/revovoice"
@@ -8,4 +9,26 @@ sample_rate: 24000
 language: multilingual
 description: "RevoVoice multilingual zero-shot TTS with voice cloning and design (600+ languages)"
 hf_private: true
+size_mb: 1200.0
+capabilities:
+  - voice-cloning
+  - streaming
+languages:
+  - en
+  - zh
+  - ms
+  - ja
+  - ko
+  - es
+  - fr
+  - de
+  - multilingual
+tags:
+  - multilingual
+  - voice-cloning
+  - high-quality
+  - gpu-recommended
+license: "MIT"
+min_ram_mb: 4096
+min_vram_mb: 2048
 files: {}

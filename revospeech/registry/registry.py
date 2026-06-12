@@ -103,7 +103,7 @@ def _load_builtin_manifests() -> None:
 
 def _load_user_manifests() -> None:
     """Load user manifests from ~/.config/revospeech/models/."""
-    user_dir = Path.home() / ".config" / "revos" / "models"
+    user_dir = Path.home() / ".config" / "revospeech" / "models"
     _load_manifests_from_dir(user_dir)
 
 

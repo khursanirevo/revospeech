@@ -27,7 +27,7 @@ _callbacks_lock = threading.Lock()
 _file_lock = threading.Lock()
 
 # Local usage log path
-_USAGE_LOG = Path.home() / ".cache" / "revos" / "usage.jsonl"
+_USAGE_LOG = Path.home() / ".cache" / "revospeech" / "usage.jsonl"
 _MAX_LOG_SIZE = 10 * 1024 * 1024  # 10 MB
 
 

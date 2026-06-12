@@ -14,7 +14,7 @@ from .manifest import ModelManifest
 
 logger = logging.getLogger(__name__)
 
-CACHE_DIR = Path.home() / ".cache" / "revos"
+CACHE_DIR = Path.home() / ".cache" / "revospeech"
 
 
 def _progress_hook(block_num: int, block_size: int, total_size: int) -> None:

@@ -292,7 +292,7 @@ def info() -> None:
     """Show environment and configuration info."""
     import sys
 
-    click.echo(f"RevoS version:   {_get_version()}")
+    click.echo(f"RevoSpeech version:   {_get_version()}")
     click.echo(f"Python:          {sys.version.split()[0]}")
 
     # Device
@@ -306,7 +306,7 @@ def info() -> None:
     click.echo(f"Models loaded:   {len(list_models())}")
 
     # Cache dir
-    cache_dir = Path.home() / ".cache" / "revos"
+    cache_dir = Path.home() / ".cache" / "revospeech"
     click.echo(f"Cache dir:       {cache_dir}")
 
     # Catalog repo

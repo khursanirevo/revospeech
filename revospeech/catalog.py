@@ -30,10 +30,10 @@ DEFAULT_CATALOG_REPO = "khursanirevo/revos"
 _GITHUB_API = "https://api.github.com/repos"
 
 # Local user models directory
-_USER_MODELS_DIR = Path.home() / ".config" / "revos" / "models"
+_USER_MODELS_DIR = Path.home() / ".config" / "revospeech" / "models"
 
 # Catalog cache
-_CACHE_FILE = Path.home() / ".cache" / "revos" / "catalog_cache.json"
+_CACHE_FILE = Path.home() / ".cache" / "revospeech" / "catalog_cache.json"
 _CACHE_TTL = 3600  # 1 hour in seconds
 
 

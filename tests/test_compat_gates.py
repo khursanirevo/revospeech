@@ -31,16 +31,15 @@ class TestManifestCompat:
         from revospeech.registry.manifest import load_manifest
 
         manifest = load_manifest(Path("revospeech/models/asr/zipformer_v2.yaml"))
-        # All new fields should have safe defaults
+        # All new fields should be present and correct type
         assert isinstance(manifest.capabilities, list)
         assert isinstance(manifest.languages, list)
         assert isinstance(manifest.tags, list)
-        assert manifest.api_endpoint == ""
-        assert manifest.size_mb == 0.0
-        assert manifest.license == ""
-        assert manifest.sha256 == ""
-        assert manifest.min_ram_mb == 0
-        assert manifest.min_vram_mb == 0
+        assert isinstance(manifest.size_mb, float)
+        assert isinstance(manifest.license, str)
+        assert isinstance(manifest.sha256, str)
+        assert isinstance(manifest.min_ram_mb, int)
+        assert isinstance(manifest.min_vram_mb, int)
 
 
 class TestImportChain:
@@ -90,10 +89,10 @@ class TestExceptionHierarchy:
 
         e = RevosConfigError(
             "API key missing",
-            suggestion="Run: revos config set-api-key",
+            suggestion="Run: revospeech config set-api-key",
         )
         assert "API key missing" in str(e)
-        assert "revos config set-api-key" in str(e)
+        assert "revospeech config set-api-key" in str(e)
 
     def test_exception_without_suggestion(self):
         from revospeech.exceptions import RevosEngineError

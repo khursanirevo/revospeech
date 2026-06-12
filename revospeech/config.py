@@ -14,7 +14,7 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-CONFIG_DIR = Path.home() / ".config" / "revos"
+CONFIG_DIR = Path.home() / ".config" / "revospeech"
 CONFIG_FILE = CONFIG_DIR / "config.yaml"
 ENV_VAR = "REVOLAB_API_KEY"
 
