@@ -6,28 +6,13 @@ import logging
 
 import numpy as np
 
+from revospeech.hf_utils import get_hf_user, wrap_hf_error
 from revospeech.registry import get
 
 from .base import BaseTTS
 from .result import Audio
 
 logger = logging.getLogger(__name__)
-
-
-def _get_hf_user() -> str | None:
-    """Get the current HuggingFace username from their token.
-
-    Returns:
-        HuggingFace username, or None if not authenticated.
-    """
-    try:
-        from huggingface_hub import HfApi
-
-        api = HfApi()
-        info = api.whoami()
-        return info.get("name", "unknown")
-    except Exception:
-        return None
 
 
 class RevoVoiceTTS(BaseTTS):
@@ -73,7 +58,7 @@ class RevoVoiceTTS(BaseTTS):
         )
 
         # Identify the HF user for gated model tracking
-        self.hf_user = _get_hf_user()
+        self.hf_user = get_hf_user()
         if self.hf_user:
             logger.info("Authenticated as HuggingFace user: %s", self.hf_user)
         else:
@@ -89,25 +74,7 @@ class RevoVoiceTTS(BaseTTS):
                 **({"revision": revision} if revision else {}),
             )
         except OSError as e:
-            err = str(e).lower()
-            if "gated" in err or "authentication" in err or "401" in err:
-                raise RuntimeError(
-                    f"Cannot access model '{model_id}' — "
-                    f"it requires HuggingFace authentication.\n"
-                    f"Log in with:  huggingface-cli login\n"
-                    f"Or set:        export HF_TOKEN=your_token\n"
-                    f"Get a token:  https://huggingface.co/settings/tokens"
-                ) from e
-            if "403" in err or "access" in err or "permission" in err:
-                raise RuntimeError(
-                    f"Access denied to model '{model_id}'.\n"
-                    f"Your HuggingFace account does not have access to "
-                    f"this gated model.\n"
-                    f"Request access at: "
-                    f"https://huggingface.co/{model_id}\n"
-                    f"Then wait for the repository owner to approve."
-                ) from e
-            raise
+            raise wrap_hf_error(e, model_id) from e
 
         self._sample_rate = manifest.sample_rate
         self._model_id = model_id
