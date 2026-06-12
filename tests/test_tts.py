@@ -60,7 +60,7 @@ def _make_mock_omnivoice():
     return mock_module, mock_cls, mock_model
 
 
-@patch("revospeech.tts.revovoice_engine._get_hf_user", return_value=None)
+@patch("revospeech.hf_utils.get_hf_user", return_value=None)
 def test_revovoice_engine_synthesize(mock_hf_user, tmp_path: Path):
     """Test RevoVoiceTTS.synthesize with mocked model."""
     from revospeech.registry.registry import register
@@ -91,7 +91,7 @@ def test_revovoice_engine_synthesize(mock_hf_user, tmp_path: Path):
     mock_model.generate.assert_called_once_with(text="Hello world", speed=1.0)
 
 
-@patch("revospeech.tts.revovoice_engine._get_hf_user", return_value=None)
+@patch("revospeech.hf_utils.get_hf_user", return_value=None)
 def test_revovoice_engine_save_to_file(mock_hf_user, tmp_path: Path):
     """Test RevoVoiceTTS.synthesize saves to file when output_path given."""
     from revospeech.registry.registry import register
@@ -121,7 +121,7 @@ def test_revovoice_engine_save_to_file(mock_hf_user, tmp_path: Path):
     assert (tmp_path / "output.wav").exists()
 
 
-@patch("revospeech.tts.revovoice_engine._get_hf_user", return_value=None)
+@patch("revospeech.hf_utils.get_hf_user", return_value=None)
 def test_revovoice_engine_gated_error(mock_hf_user):
     """Test that OSError for gated repo raises clear RuntimeError."""
     from revospeech.registry.registry import register
@@ -172,17 +172,17 @@ def _register_vits():
 
 @patch(
     "revospeech.tts.vits_engine._phonemize_espeak",
-    return_value=["s", "a", "l", "a", "m"],
+    return_value=[["s", "a", "l", "a", "m"]],
 )
 def test_vits_engine_synthesize(mock_phonemize, tmp_path):
     mock_sess = MagicMock()
     mock_sess.run.return_value = [np.zeros((1, 1, 22050), dtype=np.float32)]
-    mock_phoneme_map = {"^": 1, "$": 2, "s": 3, "a": 4, "l": 5}
+    mock_phoneme_map = {"^": [1], "$": [2], "s": [3], "a": [4], "l": [5]}
 
     _register_vits()
     with patch(
         "revospeech.tts.vits_engine.VitsTTS._load_speaker",
-        return_value=(mock_sess, mock_phoneme_map),
+        return_value=(mock_sess, mock_phoneme_map, {}),
     ):
         from revospeech.tts.vits_engine import VitsTTS
 
@@ -198,12 +198,12 @@ def test_vits_engine_synthesize(mock_phonemize, tmp_path):
 def test_vits_engine_save_to_file(mock_phonemize, tmp_path):
     mock_sess = MagicMock()
     mock_sess.run.return_value = [np.zeros((1, 1, 8000), dtype=np.float32)]
-    mock_phoneme_map = {"^": 1, "$": 2}
+    mock_phoneme_map = {"^": [1], "$": [2]}
 
     _register_vits()
     with patch(
         "revospeech.tts.vits_engine.VitsTTS._load_speaker",
-        return_value=(mock_sess, mock_phoneme_map),
+        return_value=(mock_sess, mock_phoneme_map, {}),
     ):
         from revospeech.tts.vits_engine import VitsTTS
 
