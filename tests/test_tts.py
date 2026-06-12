@@ -170,14 +170,20 @@ def _register_vits():
     )
 
 
-@patch("revospeech.tts.vits_engine._phonemize_espeak", return_value=["s", "a", "l", "a", "m"])
+@patch(
+    "revospeech.tts.vits_engine._phonemize_espeak",
+    return_value=["s", "a", "l", "a", "m"],
+)
 def test_vits_engine_synthesize(mock_phonemize, tmp_path):
     mock_sess = MagicMock()
     mock_sess.run.return_value = [np.zeros((1, 1, 22050), dtype=np.float32)]
     mock_phoneme_map = {"^": 1, "$": 2, "s": 3, "a": 4, "l": 5}
 
     _register_vits()
-    with patch("revospeech.tts.vits_engine.VitsTTS._load_speaker", return_value=(mock_sess, mock_phoneme_map)):
+    with patch(
+        "revospeech.tts.vits_engine.VitsTTS._load_speaker",
+        return_value=(mock_sess, mock_phoneme_map),
+    ):
         from revospeech.tts.vits_engine import VitsTTS
 
         engine = VitsTTS("test-vits")
@@ -195,7 +201,10 @@ def test_vits_engine_save_to_file(mock_phonemize, tmp_path):
     mock_phoneme_map = {"^": 1, "$": 2}
 
     _register_vits()
-    with patch("revospeech.tts.vits_engine.VitsTTS._load_speaker", return_value=(mock_sess, mock_phoneme_map)):
+    with patch(
+        "revospeech.tts.vits_engine.VitsTTS._load_speaker",
+        return_value=(mock_sess, mock_phoneme_map),
+    ):
         from revospeech.tts.vits_engine import VitsTTS
 
         engine = VitsTTS("test-vits")
@@ -205,7 +214,8 @@ def test_vits_engine_save_to_file(mock_phonemize, tmp_path):
     assert (tmp_path / "vits_out.wav").exists()
 
 
-def test_vits_engine_unknown_speaker():
+@patch("revospeech.tts.vits_engine._phonemize_espeak", return_value=["a"])
+def test_vits_engine_unknown_speaker(mock_phonemize):
     _register_vits()
     from revospeech.tts.vits_engine import VitsTTS
 
