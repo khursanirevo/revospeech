@@ -1,0 +1,19 @@
+# ASR Demo Reference Transcripts
+# Format: filename|language|text
+
+my_greeting_sarah.wav|malay|Selamat sejahtera, apa khabar? Saya harap anda semua dalam keadaan sihat.
+my_news_ai.wav|malay|Kerajaan Malaysia telah mengumumkan dasar baru untuk meningkatkan kualiti pendidikan di seluruh negara. Menurut Kementerian Pendidikan, langkah ini diambil bagi memastikan setiap pelajar mendapat akses kepada pembelajaran yang berkualiti.
+my_weather_sarah.wav|malay|Jabatan Meteorologi Malaysia meramalkan hujan petir pada petang ini di kebanyakan kawasan di Semenanjung Malaysia. Penduduk dinasihatkan supaya berhati-hati.
+my_food_noriya.wav|malay|Nasi lemak ialah makanan tradisional Melayu yang terkenal. Ia biasanya dimakan pada waktu sarapan dengan sambal, telur goreng, dan timun.
+my_tech_ai.wav|malay|Teknologi kecerdasan buatan semakin berkembang pesat di Malaysia. Banyak syarikat tempatan mula menggunakan teknologi ini untuk meningkatkan produktiviti.
+my_formal_paan.wav|malay|Yang Berhormat Tuan Speaker, saya ingin mengucapkan terima kasih atas peluang yang diberikan untuk menyampaikan pandangan mengenai isu ini di Dewan Rakyat.
+en_greeting_sarah.wav|english|Good morning everyone, welcome to today's presentation on speech recognition technology.
+en_news_ai.wav|english|The government announced a new policy today aimed at improving digital infrastructure across the country. Officials say the initiative will create thousands of new jobs in the technology sector.
+en_meeting_sarah.wav|english|Let's move on to the next item on our agenda. We need to discuss the quarterly revenue targets and make sure our sales team is aligned with the new strategy.
+en_tech_ai.wav|english|Automatic speech recognition systems use deep learning models to convert spoken language into text. These models are trained on thousands of hours of audio data.
+mix_office_ai.wav|mixed_my_en|Meeting kita pada pukul tiga petang nanti. Tolong prepare slide presentation untuk Q3 review.
+mix_tech_sarah.wav|mixed_my_en|Machine learning model ini boleh detect bahasa Melayu dan English secara automatic. Accuracy dia sangat tinggi, lebih kurang sembilan puluh lapan peratus.
+mix_casual_paan.wav|mixed_my_en|Hari ni kita pergi makan di restaurant dekat KLCC. Kat sana ada free parking kalau you spend lebih dari lima puluh ringgit.
+mix_business_ai.wav|mixed_my_en|Boss kita suruh submit report before Friday. Kalau ada apa-apa issue, kita boleh discuss dalam meeting esok.
+mix_education_sarah.wav|mixed_my_en|Student yang ambil Computer Science ni kena belajar programming language macam Python dan Java. Tapi senior saya cakap kalau you rajin practice, memang boleh score.
+mix_everyday_paan.wav|mixed_my_en|Jom kita grab coffee dekat cafe tu. Wifi dia free dan fast sangat, selesa untuk buat assignment.

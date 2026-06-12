@@ -64,4 +64,4 @@ def ASR(model_name: str, device: str = "auto") -> BaseASR:
     )
 
 
-__all__ = ["ASR", "BaseASR", "Transcript", "Segment"]
+__all__ = ["ASR", "BaseASR", "Transcript", "Segment", "BatchReport", "BatchResult"]
