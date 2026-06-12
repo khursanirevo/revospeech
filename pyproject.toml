@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
 ]
 
 dependencies = [
@@ -38,8 +39,14 @@ dependencies = [
 [project.optional-dependencies]
 gpu = ["onnxruntime-gpu"]
 tts = ["omnivoice"]
-all = ["onnxruntime-gpu", "omnivoice"]
+api = ["httpx>=0.27"]
+all = ["onnxruntime-gpu", "omnivoice", "httpx>=0.27"]
 dev = ["pytest>=7.0", "pytest-cov", "ruff"]
+
+[project.urls]
+Homepage = "https://github.com/khursanirevo/revos"
+Repository = "https://github.com/khursanirevo/revos"
+Issues = "https://github.com/khursanirevo/revos/issues"
 
 [project.scripts]
 revos = "revos.cli.main:cli"
