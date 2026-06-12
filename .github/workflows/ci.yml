@@ -13,8 +13,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
       - run: uv sync --extra dev
-      - run: uv run ruff check revos/ tests/
-      - run: uv run ruff format --check revos/ tests/
+      - run: uv run ruff check revospeech/ tests/
+      - run: uv run ruff format --check revospeech/ tests/
 
   test:
     runs-on: ubuntu-latest
@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
       - run: uv sync --extra dev --python ${{ matrix.python-version }}
-      - run: uv run pytest --cov=revos --cov-fail-under=70 -m "not slow and not api" tests/
+      - run: uv run pytest --cov=revospeech --cov-fail-under=70 -m "not slow and not api" tests/
 
   build:
     runs-on: ubuntu-latest
@@ -34,4 +34,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
       - run: uv build
-      - run: uv run python -c "import revos; print(revos.__version__)"
+      - run: uv run python -c "import revospeech; print(revospeech.__version__)"
