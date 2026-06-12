@@ -2,7 +2,7 @@
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/revos/revos/ci.yml?branch=main)](.github/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/revos/revos/ci.yml?branch=master)](.github/workflows/ci.yml)
 
 A unified Python library for speech AI — ASR and TTS using open models.
 
@@ -76,6 +76,26 @@ audio = tts.synthesize(
 audio.save('cloned.wav')
 ```
 
+### Model Discovery
+
+```python
+import revos
+
+# List all models with status
+revos.list_models()
+
+# Filter by task, mode, status
+revos.list_models(task="asr", status="ready")
+revos.list_models(mode="api")
+
+# Fuzzy search
+revos.search_models("english fast")
+
+# Check a specific model
+status = revos.check_model("zipformer-v2")
+print(status.is_ready)
+```
+
 ### CLI
 
 ```bash
@@ -94,8 +114,17 @@ revos synthesize -m revovoice -t "Hello, world!" -o output.wav
 # From text file
 revos synthesize -m revovoice -f script.txt -o audiobook.wav
 
-# List available models
+# List available models (with status icons)
 revos models
+revos models --ready           # Only ready-to-use models
+revos models --mode api        # Only API models
+revos models --task asr        # Filter by task
+
+# Detailed model info
+revos models-info zipformer-v2
+
+# Fuzzy search
+revos search "english fast"
 
 # Browse remote catalog
 revos catalog list
@@ -103,16 +132,19 @@ revos catalog list
 # Pull a model from the catalog
 revos catalog pull revovoice
 
+# API key management
+revos config set-api-key
+
 # Show environment info
 revos info
 ```
 
 ## Available Models
 
-| Model | Task | Backend | Languages | Access | Description |
-|-------|------|---------|-----------|--------|-------------|
-| `zipformer-v2` | ASR | sherpa-onnx | English | Open | Zipformer small transducer model |
-| `revovoice` | TTS | RevoVoice | 600+ | **Gated** | Zero-shot multilingual TTS with voice cloning |
+| Model | Task | Backend | Mode | Languages | Access | Description |
+|-------|------|---------|------|-----------|--------|-------------|
+| `zipformer-v2` | ASR | sherpa-onnx | local | English | Open | Zipformer small transducer model |
+| `revovoice` | TTS | RevoVoice | local | 600+ | **Gated** | Zero-shot multilingual TTS with voice cloning |
 
 ### Model Directory
 
@@ -146,6 +178,33 @@ and require approval before use.
 
 > **For team members adding models:** If your model is gated, set `hf_private: true` in the YAML manifest. This tells RevoS to check HF authentication before downloading.
 
+## Configuration
+
+### API Keys
+
+For cloud API backends, set your API key:
+
+```bash
+# Option 1: Environment variable
+export REVOLAB_API_KEY=rv-your-key-here
+
+# Option 2: CLI command (saves to ~/.config/revos/config.yaml)
+revos config set-api-key
+```
+
+Resolution order: constructor arg > `REVOLAB_API_KEY` env var > `~/.config/revos/config.yaml`
+
+### Catalog Source
+
+Override the catalog source with:
+```bash
+export REVOS_CATALOG_REPO="myorg/revos"    # env var
+```
+Or in `~/.config/revos/config.yaml`:
+```yaml
+catalog_repo: "myorg/revos"
+```
+
 ## Adding Custom Models
 
 Add a YAML manifest to `~/.config/revos/models/`:
@@ -154,12 +213,15 @@ Add a YAML manifest to `~/.config/revos/models/`:
 # ~/.config/revos/models/asr/my-model.yaml
 name: my-custom-model
 task: asr
+mode: local
 backend: sherpa-onnx
 model_type: transducer
 model_url: "https://example.com/models/my-model.tar.bz2"
 sample_rate: 16000
 language: en
 description: "My custom ASR model"
+capabilities: ["word-timestamps"]
+languages: ["en"]
 files:
   encoder: "encoder.onnx"
   decoder: "decoder.onnx"
@@ -169,23 +231,27 @@ files:
 
 Then use it: `from revos.asr import ASR; asr = ASR('my-custom-model')`
 
+### API Models
+
+```yaml
+# ~/.config/revos/models/asr/my-api-model.yaml
+name: my-api-model
+task: asr
+mode: api
+backend: my-api
+api_endpoint: "https://api.example.com/v1"
+description: "Cloud ASR"
+capabilities: ["streaming"]
+languages: ["en"]
+```
+
 ### Pinning Model Versions
 
 For HuggingFace-hosted models, pin to a specific commit hash or tag using the `revision` field:
 
 ```yaml
-name: revovoice
-task: tts
-backend: revovoice
-model_type: diffusion
-model_url: "Revolab/revovoice"
 revision: "a1b2c3d"       # Pin to specific commit hash
 # revision: "v1.0.0"      # Or use a git tag
-sample_rate: 24000
-language: multilingual
-description: "RevoVoice pinned to v1.0.0"
-hf_private: true
-files: {}
 ```
 
 Without `revision`, the latest version from the default branch is used.
@@ -202,29 +268,24 @@ revos catalog list
 revos catalog pull revovoice
 ```
 
-Override the catalog source with:
-```bash
-export REVOS_CATALOG_REPO="myorg/revos"    # env var
-```
-Or in `~/.config/revos/config.yaml`:
-```yaml
-catalog_repo: "myorg/revos"
-```
-
 ## Documentation
 
 - [AGENTS.md](AGENTS.md) — Architecture guide for AI agents and contributors
 - [CONTRIBUTING.md](CONTRIBUTING.md) — How to contribute
+- [TODO.md](TODO.md) — Full backlog and roadmap
 
 ## Project Structure
 
 ```
 revos/
 ├── revos/
-│   ├── asr/           # ASR engine (sherpa-onnx backend)
-│   ├── tts/           # TTS engine (RevoVoice backend)
-│   ├── registry/      # Model manifest registry + downloader
-│   ├── cli/           # Click CLI (revos transcribe / synthesize / models / info)
+│   ├── asr/           # ASR engines (sherpa-onnx)
+│   ├── tts/           # TTS engines (RevoVoice)
+│   ├── registry/      # Model manifests, registry, downloader, status
+│   ├── cli/           # Click CLI
+│   ├── config.py      # API key & configuration management
+│   ├── exceptions.py  # Custom exception hierarchy
+│   ├── catalog.py     # Remote model catalog (GitHub, cached)
 │   ├── device.py      # GPU/CPU auto-detection
 │   └── models/        # Bundled YAML manifests
 ├── tests/

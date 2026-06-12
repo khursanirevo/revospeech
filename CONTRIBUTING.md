@@ -26,12 +26,15 @@ If the model uses an existing backend (sherpa-onnx for ASR, revovoice for TTS), 
 # ~/.config/revos/models/asr/my-model.yaml
 name: my-model
 task: asr
+mode: local
 backend: sherpa-onnx
 model_type: transducer
 model_url: "https://example.com/model.tar.bz2"
 sample_rate: 16000
 language: en
 description: "My custom ASR model"
+capabilities: ["word-timestamps", "streaming"]
+languages: ["en"]
 files:
   encoder: "encoder.onnx"
   decoder: "decoder.onnx"
@@ -40,6 +43,21 @@ files:
 ```
 
 Then use it: `from revos.asr import ASR; ASR('my-model')`
+
+### API Models
+
+For cloud API backends, set `mode: api`:
+
+```yaml
+name: my-api-model
+task: asr
+mode: api
+backend: my-api
+api_endpoint: "https://api.example.com/v1"
+description: "Cloud ASR via example API"
+capabilities: ["streaming"]
+languages: ["en", "multilingual"]
+```
 
 ### Pinning Model Versions
 
@@ -54,14 +72,40 @@ For gated models, set `hf_private: true`.
 
 ### Remote Catalog
 
-Models added to `revos/models/` in this repo are automatically
-available via the remote catalog. Users can discover and install
-them without upgrading:
+Models added to `revos/models/` in this repo are automatically available via the remote catalog:
 
 ```bash
 revos catalog list           # Browse models from this repo
 revos catalog pull <name>    # Install a model locally
 ```
+
+### Manifest Schema
+
+All fields except `name`, `task`, `backend` are optional with safe defaults:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `name` | str | required | Unique identifier within task |
+| `task` | str | required | `"asr"` or `"tts"` |
+| `backend` | str | required | Engine name |
+| `mode` | str | `"local"` | `"local"` or `"api"` |
+| `api_endpoint` | str | `""` | URL for API backend |
+| `model_url` | str | `""` | Download URL or HF repo id |
+| `model_type` | str | `""` | Architecture type |
+| `sample_rate` | int | `16000` | Audio sample rate |
+| `language` | str | `""` | Primary language |
+| `description` | str | `""` | Human-readable description |
+| `files` | dict | `{}` | Logical name → expected filename |
+| `hf_private` | bool | `false` | Requires HF auth |
+| `revision` | str | `""` | Pin to commit/tag |
+| `size_mb` | float | `0.0` | Download size |
+| `capabilities` | list | `[]` | e.g., `["streaming", "voice-cloning"]` |
+| `languages` | list | `[]` | e.g., `["en", "zh"]` |
+| `tags` | list | `[]` | e.g., `["fast", "multilingual"]` |
+| `license` | str | `""` | Model weight license |
+| `sha256` | str | `""` | Download integrity hash |
+| `min_ram_mb` | int | `0` | RAM requirement |
+| `min_vram_mb` | int | `0` | VRAM requirement |
 
 ## Adding a New Backend
 
@@ -71,7 +115,42 @@ revos catalog pull <name>    # Install a model locally
 4. Add tests with mocked backend
 5. Add at least one YAML manifest
 
+For API backends: use `get_api_key()` from `revos.config` for auth, set `mode: api` in manifest.
+
 See [AGENTS.md](AGENTS.md) for detailed instructions.
+
+## Model Discovery
+
+Users can discover models via CLI and Python API:
+
+```bash
+# CLI
+revos models                    # List all models with status
+revos models --ready            # Only ready-to-use models
+revos models --mode api         # Only API models
+revos models-info zipformer-v2  # Detailed model info
+revos search "english fast"     # Fuzzy search
+```
+
+```python
+# Python
+import revos
+revos.list_models(task="asr", status="ready")
+revos.search_models("english fast")
+revos.check_model("zipformer-v2")
+```
+
+## Configuration
+
+API keys and settings are managed via:
+
+```bash
+# CLI
+revos config set-api-key       # Save API key (stored in ~/.config/revos/config.yaml)
+export REVOLAB_API_KEY=rv-...  # Or use env var
+```
+
+Resolution order: constructor arg > `REVOLAB_API_KEY` env var > `~/.config/revos/config.yaml`
 
 ## Development Workflow
 
@@ -88,10 +167,10 @@ See [AGENTS.md](AGENTS.md) for detailed instructions.
 ## Code Style
 
 - Python 3.11+, formatted by ruff (line length 88)
-- Lazy imports for optional dependencies
-  (omnivoice pip package; revovoice is the model/backend name)
+- Lazy imports for optional dependencies (omnivoice, httpx)
 - Factory functions as public API (not classes)
 - YAML manifests for model configuration
+- Custom exceptions from `revos.exceptions` (never bare `ValueError`/`KeyError`)
 
 ## Testing
 
@@ -106,18 +185,34 @@ uv run pytest tests/ --cov=revos --cov-report=term-missing
 uv run pytest tests/ -v -m "not slow"
 ```
 
+Markers: `slow` (real model download), `api` (requires API key), `roundtrip` (TTS → ASR validation)
+
 ## Project Structure
 
 ```
 revos/
-  asr/           # ASR engine
-  tts/           # TTS engine (includes synthesize_long)
-  registry/      # Model manifest registry + downloader
-  catalog.py     # Remote model catalog (GitHub-based)
-  cli/           # Click CLI
-  models/        # Bundled YAML manifests
-tests/           # Test suite
+  asr/             # ASR engines (sherpa-onnx, future: revolab API)
+  tts/             # TTS engines (revovoice, future: revolab API)
+  registry/        # Model manifests, registry, downloader, status
+  catalog.py       # Remote model catalog (GitHub-based, cached)
+  config.py        # API key & configuration management
+  exceptions.py    # Custom exception hierarchy
+  cli/             # Click CLI
+  models/          # Bundled YAML manifests
+tests/             # Test suite
 ```
+
+## Exception Hierarchy
+
+```
+RevosError (base)
+├── RevosConfigError    — missing API key, bad config
+├── RevosModelError     — model not found, download failed
+├── RevosEngineError    — inference failure
+└── RevosAudioError     — unsupported format, corrupt file
+```
+
+All exceptions have a `suggestion` attribute with a fix instruction.
 
 ## Need Help?
 

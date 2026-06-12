@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Custom exception hierarchy (`revos/exceptions.py`): `RevosError`, `RevosConfigError`, `RevosModelError`, `RevosEngineError`, `RevosAudioError` — all with `suggestion` attribute for fix instructions
+- Configuration module (`revos/config.py`): `get_api_key()`, `set_api_key()`, `load_config()`, `save_config()` — API key resolution: constructor arg > `REVOLAB_API_KEY` env var > `~/.config/revos/config.yaml`
+- Model status system (`revos/registry/status.py`): `ModelStatus` dataclass with `check_model()` and `list_model_statuses()` — shows ready/needs-download/needs-api-key per model
+- Model discovery API: `revos.list_models()`, `revos.search_models(query)`, `revos.check_model(name)` — fuzzy search via `difflib.SequenceMatcher`
+- CLI: `revos models` rewritten with rich table, status icons (✓/↓/✗), filter flags (`--ready`, `--task`, `--mode`, `--status`, `--json`)
+- CLI: `revos models-info <name>` — detailed single-model view
+- CLI: `revos search <query>` — fuzzy search across model names, tags, descriptions
+- CLI: `revos config set-api-key` — save API key to config file
+- Manifest schema extended with 11 new optional fields: `mode`, `api_endpoint`, `size_mb`, `capabilities`, `languages`, `tags`, `license`, `sha256`, `min_ram_mb`, `min_vram_mb`
+- `ModelManifest.is_local` / `ModelManifest.is_api` properties
+- Factory dispatch for API mode: `ASR()` and `TTS()` validate API key when `mode: api`
+- `BaseASR.stream_transcribe()` no-op (raises NotImplementedError)
+- `BaseTTS.synthesize_streaming()` no-op (raises NotImplementedError)
+- Catalog caching with 1-hour TTL in `~/.cache/revos/catalog_cache.json` — repo-aware (changing `REVOLAB_CATALOG_REPO` invalidates cache)
+- Catalog network calls: retry (3x) with exponential backoff and 10s timeout
+- Thread-safe model registry (`threading.Lock`)
+- Thread-safe usage tracking with log rotation (10MB max)
+- `__version__` reads from `importlib.metadata` with fallback to `"0.0.0-dev"`
+- `__all__` export list in `revos/__init__.py`
+- Backward-compatibility gate tests (`tests/test_compat_gates.py`) — 10 tests covering manifest loading, import chain, exception hierarchy
+- Integration tests for ASR, TTS, and catalog (`tests/test_integration.py`)
+- pytest markers: `slow`, `api`, `roundtrip`
+
+### Changed
+
+- CLI `transcribe` and `synthesize` commands wrapped in try/except — friendly error messages instead of raw tracebacks
+- `revos/catalog.py` uses `load_config()` from config module instead of inline YAML reading
+- CI workflow: added `ruff format --check`, coverage threshold (70%)
+- Publish workflow: unified to `uv build`
+
 ## [0.1.0] - 2026-04-24
 
 ### Added
