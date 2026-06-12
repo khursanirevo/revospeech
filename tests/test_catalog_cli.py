@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
+from revos.catalog import _CACHE_FILE
 from revos.cli.main import cli
 from revos.registry.registry import _models
 
@@ -14,8 +15,12 @@ from revos.registry.registry import _models
 @pytest.fixture(autouse=True)
 def clear_registry():
     _models.clear()
+    if _CACHE_FILE.exists():
+        _CACHE_FILE.unlink()
     yield
     _models.clear()
+    if _CACHE_FILE.exists():
+        _CACHE_FILE.unlink()
 
 
 @pytest.fixture

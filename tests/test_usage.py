@@ -49,7 +49,7 @@ def test_track_usage_writes_local(tmp_path: Path):
 
 
 def test_track_usage_with_hf_user(tmp_path: Path):
-    """Test that HF user name is extracted from dict."""
+    """Test that HF username is stored directly."""
     log_path = tmp_path / "usage.jsonl"
     with patch("revos.usage._USAGE_LOG", log_path):
         track_usage(
@@ -57,7 +57,7 @@ def test_track_usage_with_hf_user(tmp_path: Path):
             model_id="revos/test",
             model_name="test",
             task="tts",
-            hf_user={"name": "testuser", "fullname": "Test User"},
+            hf_user="testuser",
             device="cuda",
         )
 
