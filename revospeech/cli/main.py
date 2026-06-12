@@ -1,4 +1,4 @@
-"""RevoS CLI — Command-line interface for speech AI.
+"""RevoSpeech CLI — Command-line interface for speech AI.
 
 Usage:
     revos transcribe --model zipformer-v2 audio.wav
@@ -16,7 +16,7 @@ import click
 @click.group()
 @click.version_option()
 def cli() -> None:
-    """RevoS — A unified library for speech AI (ASR & TTS)."""
+    """RevoSpeech — A unified library for speech AI (ASR & TTS)."""
 
 
 @cli.command()
@@ -380,7 +380,7 @@ def _get_version() -> str:
     from importlib.metadata import version
 
     try:
-        return version("revos")
+        return version("revospeech")
     except Exception:
         return "unknown"
 

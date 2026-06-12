@@ -1,4 +1,4 @@
-"""RevoS TTS — Text-to-Speech.
+"""RevoSpeech TTS — Text-to-Speech.
 
 Usage:
     from revospeech.tts import TTS

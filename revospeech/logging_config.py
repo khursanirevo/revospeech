@@ -1,4 +1,4 @@
-"""Logging configuration for RevoS.
+"""Logging configuration for RevoSpeech.
 
 Provides a simple way to control log output verbosity.
 
@@ -28,7 +28,7 @@ def configure_logging(level: str = "WARNING") -> None:
             f"Use DEBUG, INFO, WARNING, ERROR, or CRITICAL."
         )
 
-    logger = logging.getLogger("revos")
+    logger = logging.getLogger("revospeech")
     logger.setLevel(numeric)
 
     # Add handler only if none exists

@@ -1,4 +1,4 @@
-# TODO — RevoS Open Source Readiness
+# TODO — RevoSpeech Open Source Readiness
 
 > **Goal**: Ship `revospeech` as revolab's open-source speech AI library.
 > Users run models **locally** (weights from HuggingFace) or via **revolab cloud API** (API key).

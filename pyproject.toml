@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 authors = [
-    { name = "RevoS Team" },
+    { name = "RevoSpeech Team" },
 ]
 keywords = ["asr", "tts", "speech", "sherpa-onnx", "zipformer", "omnivoice"]
 classifiers = [

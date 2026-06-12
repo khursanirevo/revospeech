@@ -82,7 +82,7 @@ def track_usage(
     Args:
         event: Event type ("model_loaded", "model_synthesized").
         model_id: HuggingFace model ID.
-        model_name: RevoS model name.
+        model_name: RevoSpeech model name.
         task: "asr" or "tts".
         hf_user: HuggingFace username (or None).
         device: Device used ("cpu" or "cuda").

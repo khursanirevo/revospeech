@@ -1,4 +1,4 @@
-"""RevoS model registry."""
+"""RevoSpeech model registry."""
 
 from .downloader import ensure_model
 from .manifest import ModelManifest, load_manifest

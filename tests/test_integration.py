@@ -73,7 +73,7 @@ class TestASRIntegration:
             [
                 "uv",
                 "run",
-                "revos",
+                "revospeech",
                 "transcribe",
                 "-m",
                 "zipformer-v2",
@@ -99,7 +99,7 @@ class TestASRIntegration:
             [
                 "uv",
                 "run",
-                "revos",
+                "revospeech",
                 "transcribe",
                 "-m",
                 "zipformer-v2",
@@ -223,7 +223,7 @@ class TestTTSIntegration:
             [
                 "uv",
                 "run",
-                "revos",
+                "revospeech",
                 "synthesize",
                 "-m",
                 "revovoice",
@@ -244,7 +244,7 @@ class TestTTSIntegration:
         import subprocess
 
         long_text = (
-            "RevoS is a unified Python library for speech AI. "
+            "RevoSpeech is a unified Python library for speech AI. "
             "It supports automatic speech recognition and text to speech. "
             "You can use it to transcribe audio files or synthesize speech "
             "from text. It supports multiple languages and voice cloning. "
@@ -255,7 +255,7 @@ class TestTTSIntegration:
             [
                 "uv",
                 "run",
-                "revos",
+                "revospeech",
                 "synthesize",
                 "-m",
                 "revovoice",

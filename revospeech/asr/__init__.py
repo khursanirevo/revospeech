@@ -1,4 +1,4 @@
-"""RevoS ASR — Automatic Speech Recognition.
+"""RevoSpeech ASR — Automatic Speech Recognition.
 
 Usage:
     from revospeech.asr import ASR

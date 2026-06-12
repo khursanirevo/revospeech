@@ -1,4 +1,4 @@
-"""RevoS — A unified Python library for speech AI.
+"""RevoSpeech — A unified Python library for speech AI.
 
 Quick start:
     from revospeech.asr import ASR
@@ -8,13 +8,13 @@ Quick start:
 try:
     from importlib.metadata import version as _version
 
-    __version__ = _version("revos")
+    __version__ = _version("revospeech")
 except Exception:
     __version__ = "0.0.0-dev"
 
 
 def __getattr__(name: str):
-    """Lazy re-exports for convenience: from revos import ASR, TTS."""
+    """Lazy re-exports for convenience: from revospeech import ASR, TTS."""
     if name == "ASR":
         from revospeech.asr import ASR
 
@@ -27,7 +27,7 @@ def __getattr__(name: str):
         from revospeech.logging_config import configure_logging
 
         return configure_logging
-    raise AttributeError(f"module 'revos' has no attribute {name!r}")
+    raise AttributeError(f"module 'revospeech' has no attribute {name!r}")
 
 
 def list_models(

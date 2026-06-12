@@ -1,4 +1,4 @@
-# Contributing to RevoS
+# Contributing to RevoSpeech
 
 Thank you for your interest in contributing! This guide covers everything you need.
 

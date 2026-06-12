@@ -1,1 +1,1 @@
-"""RevoS CLI package."""
+"""RevoSpeech CLI package."""

@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     # Long text (auto-splits and concatenates)
     long_text = (
-        "RevoS is a unified Python library for speech AI. "
+        "RevoSpeech is a unified Python library for speech AI. "
         "It supports automatic speech recognition and text to speech. "
         "You can use it to transcribe audio files or synthesize speech "
         "from text. It supports multiple languages and voice cloning."
