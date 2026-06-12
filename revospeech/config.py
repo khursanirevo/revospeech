@@ -1,6 +1,6 @@
 """Centralized configuration for revos.
 
-Manages the config file at ~/.config/revos/config.yaml and provides
+Manages the config file at ~/.config/revospeech/config.yaml and provides
 API key resolution with a clear priority chain.
 """
 
@@ -29,7 +29,7 @@ __all__ = [
 
 
 def load_config() -> dict:
-    """Load config from ~/.config/revos/config.yaml.
+    """Load config from ~/.config/revospeech/config.yaml.
 
     Returns:
         Parsed config dict, or empty dict if file is missing or invalid.
@@ -46,7 +46,7 @@ def load_config() -> dict:
 
 
 def save_config(data: dict) -> None:
-    """Save config to ~/.config/revos/config.yaml.
+    """Save config to ~/.config/revospeech/config.yaml.
 
     Creates the directory if needed. Sets file permissions to 0o600
     to protect any sensitive values (e.g. API keys).

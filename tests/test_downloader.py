@@ -9,13 +9,13 @@ from unittest.mock import patch
 
 import pytest
 
-from revos.registry.downloader import (
+from revospeech.registry.downloader import (
     _download,
     _extract,
     _find_model_dir,
     ensure_model,
 )
-from revos.registry.manifest import ModelManifest
+from revospeech.registry.manifest import ModelManifest
 
 
 def _make_manifest(**overrides):
@@ -120,7 +120,7 @@ def test_find_model_dir_subdir(tmp_path: Path):
     assert result == subdir
 
 
-@patch("revos.registry.downloader._download")
+@patch("revospeech.registry.downloader._download")
 def test_ensure_model_cached(mock_download, tmp_path: Path):
     """Test that cached models are not re-downloaded."""
     manifest = _make_manifest()
@@ -131,26 +131,26 @@ def test_ensure_model_cached(mock_download, tmp_path: Path):
     (model_dir / "encoder.onnx").write_text("cached")
     (model_dir / "tokens.txt").write_text("cached")
 
-    with patch("revos.registry.downloader.CACHE_DIR", tmp_path):
+    with patch("revospeech.registry.downloader.CACHE_DIR", tmp_path):
         result = ensure_model(manifest)
 
     assert result == model_dir
     mock_download.assert_not_called()
 
 
-@patch("revos.registry.downloader._download")
+@patch("revospeech.registry.downloader._download")
 def test_ensure_model_no_url(mock_download, tmp_path: Path):
     """Test that missing URL raises ValueError."""
     manifest = _make_manifest(model_url="")
 
-    with patch("revos.registry.downloader.CACHE_DIR", tmp_path):
+    with patch("revospeech.registry.downloader.CACHE_DIR", tmp_path):
         with pytest.raises(ValueError, match="no download URL"):
             ensure_model(manifest)
 
     mock_download.assert_not_called()
 
 
-@patch("revos.registry.downloader._download")
+@patch("revospeech.registry.downloader._download")
 def test_ensure_model_downloads_and_extracts(mock_download, tmp_path: Path):
     """Test full download + extract flow."""
     manifest = _make_manifest()
@@ -175,7 +175,7 @@ def test_ensure_model_downloads_and_extracts(mock_download, tmp_path: Path):
 
     mock_download.side_effect = fake_download
 
-    with patch("revos.registry.downloader.CACHE_DIR", tmp_path):
+    with patch("revospeech.registry.downloader.CACHE_DIR", tmp_path):
         result = ensure_model(manifest)
 
     assert (result / "encoder.onnx").exists()

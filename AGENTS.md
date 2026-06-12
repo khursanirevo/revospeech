@@ -1,6 +1,6 @@
 # AGENTS.md — Contributing Guide for AI Agents & Humans
 
-This document describes how to extend the revos library with new models, backends, and tasks. Follow it precisely when adding support for a new speech AI model.
+This document describes how to extend the revospeech library with new models, backends, and tasks. Follow it precisely when adding support for a new speech AI model.
 
 ---
 
@@ -14,10 +14,10 @@ The library has a hybrid local + API architecture ready for extension. Local inf
 - Local ASR via sherpa-onnx (Zipformer transducer)
 - Local TTS via revovoice/omnivoice (diffusion, zero-shot voice cloning)
 - Model registry with YAML manifests (11 optional fields including mode, capabilities, languages)
-- Model discovery: `revos.models`, `revos.search("query")`, `revos.check_model("name")`
-- Rich CLI: `revos models --ready`, `revos search zip`, `revos models-info zipformer-v2`
-- Remote catalog with caching: `revos catalog list`, `revos catalog pull <name>`
-- Config management: `revos config set-api-key`, env var `REVOLAB_API_KEY`
+- Model discovery: `revospeech.models`, `revospeech.search("query")`, `revospeech.check_model("name")`
+- Rich CLI: `revospeech models --ready`, `revospeech search zip`, `revospeech models-info zipformer-v2`
+- Remote catalog with caching: `revospeech catalog list`, `revospeech catalog pull <name>`
+- Config management: `revospeech config set-api-key`, env var `REVOLAB_API_KEY`
 - Exception hierarchy with helpful suggestions
 - Thread-safe registry and usage tracking
 - CI: ruff check + format, pytest with coverage gate
@@ -44,7 +44,7 @@ CLI (click) → Factory Functions (ASR/TTS) → Base Classes (BaseASR/BaseTTS) �
                               Model Registry (YAML manifests)
                                     ↕
                               Config (API keys, settings)
-                              Model Downloader (~/.cache/revos/)
+                              Model Downloader (~/.cache/revospeech/)
                               Remote Catalog (GitHub repo)
 ```
 
@@ -58,7 +58,7 @@ When API docs are provided, follow this process:
 
 ### 1. Define the API Contract
 
-Create `revos/api_contract.py` (or similar) documenting:
+Create `revospeech/api_contract.py` (or similar) documenting:
 - Base URL(s)
 - Auth header format (e.g., `Authorization: Bearer {api_key}`)
 - ASR endpoint: request format (audio upload), response format (transcript with timestamps)
@@ -68,7 +68,7 @@ Create `revos/api_contract.py` (or similar) documenting:
 
 ### 2. Create API Engine Files
 
-**ASR:** Create `revos/asr/revolab_engine.py` implementing `BaseASR`:
+**ASR:** Create `revospeech/asr/revolab_engine.py` implementing `BaseASR`:
 
 ```python
 """revolab cloud API backend for ASR."""
@@ -77,21 +77,21 @@ import logging
 import httpx
 from .base import BaseASR
 from .result import Segment, Transcript
-from revos.config import get_api_key
-from revos.exceptions import RevosConfigError, RevosEngineError
+from revospeechpeech.config import get_api_key
+from revospeechpeech.exceptions import RevosConfigError, RevosEngineError
 
 logger = logging.getLogger(__name__)
 
 class RevolabASR(BaseASR):
     def __init__(self, model_name: str, device: str = "auto") -> None:
         super().__init__(model_name, device)
-        from revos.registry import get
+        from revospeechpeech.registry import get
         self.manifest = get(model_name, "asr")
         self.api_key = get_api_key()
         if not self.api_key:
             raise RevosConfigError(
                 f"Model '{model_name}' requires an API key.",
-                suggestion="Set your API key: export REVOLAB_API_KEY=your-key or run: revos config set-api-key"
+                suggestion="Set your API key: export REVOLAB_API_KEY=your-key or run: revospeech config set-api-key"
             )
         self.base_url = self.manifest.api_endpoint or "https://api.revolab.ai/v1"
         self.client = httpx.Client(
@@ -106,7 +106,7 @@ class RevolabASR(BaseASR):
         raise NotImplementedError("Implement once API contract is defined")
 ```
 
-**TTS:** Create `revos/tts/revolab_engine.py` implementing `BaseTTS` — same pattern.
+**TTS:** Create `revospeech/tts/revolab_engine.py` implementing `BaseTTS` — same pattern.
 
 ### 3. Add YAML Manifests for API Models
 
@@ -129,7 +129,7 @@ description: "revolab cloud Whisper API"
 
 ### 4. Register in Factory
 
-The factories in `revos/asr/__init__.py` and `revos/tts/__init__.py` already check `manifest.is_api`. Currently they raise `NotImplementedError`. Update to load the API engine:
+The factories in `revospeech/asr/__init__.py` and `revospeech/tts/__init__.py` already check `manifest.is_api`. Currently they raise `NotImplementedError`. Update to load the API engine:
 
 ```python
 # In ASR() factory, replace the NotImplementedError with:
@@ -154,12 +154,12 @@ Write tests using `pytest-httpx` or mock `httpx.Client` responses.
 
 | File | Change |
 |---|---|
-| `revos/asr/revolab_engine.py` | NEW — API ASR engine |
-| `revos/tts/revolab_engine.py` | NEW — API TTS engine |
-| `revos/asr/__init__.py` | Replace NotImplementedError with engine import |
-| `revos/tts/__init__.py` | Same |
-| `revos/models/asr/revolab-whisper.yaml` | NEW — API model manifest |
-| `revos/models/tts/revolab-voice.yaml` | NEW — API model manifest |
+| `revospeech/asr/revolab_engine.py` | NEW — API ASR engine |
+| `revospeech/tts/revolab_engine.py` | NEW — API TTS engine |
+| `revospeech/asr/__init__.py` | Replace NotImplementedError with engine import |
+| `revospeech/tts/__init__.py` | Same |
+| `revospeech/models/asr/revolab-whisper.yaml` | NEW — API model manifest |
+| `revospeech/models/tts/revolab-voice.yaml` | NEW — API model manifest |
 | `pyproject.toml` | Add `httpx` to `[api]` extras |
 
 ---
@@ -170,7 +170,7 @@ If the new model uses an already-supported backend (sherpa-onnx for ASR, revovoi
 
 ### Steps
 
-1. **Create a YAML manifest** in `revos/models/{task}/` or `~/.config/revos/models/{task}/`:
+1. **Create a YAML manifest** in `revospeech/models/{task}/` or `~/.config/revospeech/models/{task}/`:
 
 ```yaml
 name: my-new-model
@@ -201,7 +201,7 @@ files:
 
 2. **Test it:**
 ```python
-from revos.asr import ASR
+from revospeechpeech.asr import ASR
 asr = ASR('my-new-model')
 result = asr.transcribe('test.wav')
 print(result.text)
@@ -209,8 +209,8 @@ print(result.text)
 
 3. **Verify discovery:**
 ```bash
-revos models-info my-new-model
-revos search "english fast"
+revospeech models-info my-new-model
+revospeech search "english fast"
 ```
 
 ### Rules
@@ -227,7 +227,7 @@ To support a new inference backend (local or API).
 
 ### Steps
 
-1. **Create engine file** at `revos/asr/{backend}_engine.py`:
+1. **Create engine file** at `revospeech/asr/{backend}_engine.py`:
 
 ```python
 from .base import BaseASR
@@ -236,7 +236,7 @@ from .result import Segment, Transcript
 class MyBackendASR(BaseASR):
     def __init__(self, model_name: str, device: str = "auto") -> None:
         super().__init__(model_name, device)
-        from revos.registry import get, ensure_model
+        from revospeechpeech.registry import get, ensure_model
         manifest = get(model_name, "asr")
         # For local: ensure_model(manifest), load weights
         # For API: get_api_key(), init httpx client
@@ -251,7 +251,7 @@ class MyBackendASR(BaseASR):
         ...
 ```
 
-2. **Register in factory** — edit `revos/asr/__init__.py`:
+2. **Register in factory** — edit `revospeech/asr/__init__.py`:
 
 For local backends, add to the `manifest.mode == "local"` branch:
 ```python
@@ -275,7 +275,7 @@ if manifest.backend == "my-api-backend":
 - Must inherit from `BaseASR` and implement `transcribe()`.
 - Must return a `Transcript` object.
 - Must lazy-import backend dependencies (so the library works without them).
-- For API backends: use `get_api_key()` from `revos.config`, raise `RevosConfigError` if missing.
+- For API backends: use `get_api_key()` from `revospeech.config`, raise `RevosConfigError` if missing.
 - For local backends: use `ensure_model()` for downloads.
 
 ---
@@ -293,28 +293,28 @@ Return `Audio(samples=np.ndarray, sample_rate=int)`.
 
 | Purpose | Location |
 |---------|----------|
-| ASR engine (sherpa-onnx) | `revos/asr/sherpa_engine.py` |
-| TTS engine (RevoVoice) | `revos/tts/revovoice_engine.py` |
-| ASR base class | `revos/asr/base.py` (includes `stream_transcribe` no-op) |
-| TTS base class | `revos/tts/base.py` (includes `synthesize_long`, `synthesize_streaming` no-op) |
-| ASR result types | `revos/asr/result.py` (Segment, Transcript) |
-| TTS result types | `revos/tts/result.py` (Audio, Audio.concatenate) |
-| ASR factory | `revos/asr/__init__.py` (dispatches by mode + backend) |
-| TTS factory | `revos/tts/__init__.py` (dispatches by mode + backend) |
-| Exception hierarchy | `revos/exceptions.py` (RevosError + 4 subclasses) |
-| Config management | `revos/config.py` (API key resolution: arg > env > config.yaml) |
-| Model status | `revos/registry/status.py` (ModelStatus, check_model, list_model_statuses) |
-| Model registry | `revos/registry/registry.py` (thread-safe singleton dict) |
-| Manifest loader | `revos/registry/manifest.py` (ModelManifest with 18 fields) |
-| Model downloader | `revos/registry/downloader.py` (security-hardened extraction) |
-| Remote catalog | `revos/catalog.py` (GitHub API with retry + cache) |
-| Device detection | `revos/device.py` |
-| Usage tracking | `revos/usage.py` (JSONL with rotation, thread-safe callbacks) |
-| CLI entry point | `revos/cli/main.py` (Click: transcribe, synthesize, models, models-info, search, catalog, info, config) |
-| Bundled manifests | `revos/models/{asr,tts}/*.yaml` |
-| User manifests | `~/.config/revos/models/**/*.yaml` |
-| Model cache | `~/.cache/revos/{model_name}/` |
-| Config file | `~/.config/revos/config.yaml` |
+| ASR engine (sherpa-onnx) | `revospeech/asr/sherpa_engine.py` |
+| TTS engine (RevoVoice) | `revospeech/tts/revovoice_engine.py` |
+| ASR base class | `revospeech/asr/base.py` (includes `stream_transcribe` no-op) |
+| TTS base class | `revospeech/tts/base.py` (includes `synthesize_long`, `synthesize_streaming` no-op) |
+| ASR result types | `revospeech/asr/result.py` (Segment, Transcript) |
+| TTS result types | `revospeech/tts/result.py` (Audio, Audio.concatenate) |
+| ASR factory | `revospeech/asr/__init__.py` (dispatches by mode + backend) |
+| TTS factory | `revospeech/tts/__init__.py` (dispatches by mode + backend) |
+| Exception hierarchy | `revospeech/exceptions.py` (RevosError + 4 subclasses) |
+| Config management | `revospeech/config.py` (API key resolution: arg > env > config.yaml) |
+| Model status | `revospeech/registry/status.py` (ModelStatus, check_model, list_model_statuses) |
+| Model registry | `revospeech/registry/registry.py` (thread-safe singleton dict) |
+| Manifest loader | `revospeech/registry/manifest.py` (ModelManifest with 18 fields) |
+| Model downloader | `revospeech/registry/downloader.py` (security-hardened extraction) |
+| Remote catalog | `revospeech/catalog.py` (GitHub API with retry + cache) |
+| Device detection | `revospeech/device.py` |
+| Usage tracking | `revospeech/usage.py` (JSONL with rotation, thread-safe callbacks) |
+| CLI entry point | `revospeech/cli/main.py` (Click: transcribe, synthesize, models, models-info, search, catalog, info, config) |
+| Bundled manifests | `revospeech/models/{asr,tts}/*.yaml` |
+| User manifests | `~/.config/revospeech/models/**/*.yaml` |
+| Model cache | `~/.cache/revospeech/{model_name}/` |
+| Config file | `~/.config/revospeech/config.yaml` |
 | API key env var | `REVOLAB_API_KEY` |
 
 ---
@@ -367,12 +367,12 @@ All exceptions have a `suggestion` attribute with a fix instruction. CLI command
 
 ## Remote Catalog
 
-Users discover and install models from the GitHub repo's `revos/models/` directory via the GitHub API. Responses are cached for 1 hour in `~/.cache/revos/catalog_cache.json` (repo-aware — changing `REVOLAB_REPO` invalidates cache). Network calls have retry (3x) with exponential backoff and 10s timeout.
+Users discover and install models from the GitHub repo's `revospeech/models/` directory via the GitHub API. Responses are cached for 1 hour in `~/.cache/revospeech/catalog_cache.json` (repo-aware — changing `REVOLAB_REPO` invalidates cache). Network calls have retry (3x) with exponential backoff and 10s timeout.
 
 ```bash
-revos catalog list              # List models from GitHub (cached 1h)
-revos catalog list -t tts       # Filter by task
-revos catalog pull revovoice    # Install manifest locally
+revospeech catalog list              # List models from GitHub (cached 1h)
+revospeech catalog list -t tts       # Filter by task
+revospeech catalog pull revovoice    # Install manifest locally
 ```
 
 ---
@@ -382,15 +382,15 @@ revos catalog pull revovoice    # Install manifest locally
 When adding any new model or backend, verify:
 
 - [ ] `uv run pytest tests/ -v` — all tests pass (currently 98 tests)
-- [ ] `uv run ruff check revos/ tests/` — lint clean
-- [ ] `uv run ruff format --check revos/ tests/` — format clean
+- [ ] `uv run ruff check revospeech/ tests/` — lint clean
+- [ ] `uv run ruff format --check revospeech/ tests/` — format clean
 - [ ] Gate tests pass: `uv run pytest tests/test_compat_gates.py -v`
 - [ ] Factory function returns correct engine type
 - [ ] Manifest loads and registers correctly
-- [ ] `revos models` shows the new model with correct status
-- [ ] `revos search` finds the model
+- [ ] `revospeech models` shows the new model with correct status
+- [ ] `revospeech search` finds the model
 - [ ] For API backends: missing API key → clear error with suggestion
-- [ ] For local backends: `from revos.asr import ASR` works without optional deps
+- [ ] For local backends: `from revospeechpeech.asr import ASR` works without optional deps
 - [ ] ImportErrors are helpful when optional backend is missing
 
 ---
@@ -401,19 +401,19 @@ When adding any new model or backend, verify:
 
 | Backend | Engine File | Dependencies | Mode | Notes |
 |---------|------------|-------------|------|-------|
-| sherpa-onnx | `revos/asr/sherpa_engine.py` | sherpa-onnx, onnxruntime | local | Zipformer transducer via ONNX |
+| sherpa-onnx | `revospeech/asr/sherpa_engine.py` | sherpa-onnx, onnxruntime | local | Zipformer transducer via ONNX |
 
 ### TTS Backends
 
 | Backend | Engine File | Dependencies | Mode | Notes |
 |---------|------------|-------------|------|-------|
-| revovoice | `revos/tts/revovoice_engine.py` | omnivoice, torch | local | Diffusion zero-shot TTS, 600+ languages |
+| revovoice | `revospeech/tts/revovoice_engine.py` | omnivoice, torch | local | Diffusion zero-shot TTS, 600+ languages |
 
 ### Pending Backends
 
 | Backend | Engine File | Dependencies | Mode | Status |
 |---------|------------|-------------|------|--------|
-| revolab-api | `revos/asr/revolab_engine.py` | httpx (optional) | api | Blocked — needs API contract |
+| revolab-api | `revospeech/asr/revolab_engine.py` | httpx (optional) | api | Blocked — needs API contract |
 
 ---
 
@@ -421,9 +421,9 @@ When adding any new model or backend, verify:
 
 The library is designed so community members can PR new backends and models:
 
-1. **New local model (easy):** Just add a YAML manifest to `revos/models/{task}/`. No code changes.
+1. **New local model (easy):** Just add a YAML manifest to `revospeech/models/{task}/`. No code changes.
 2. **New local backend (medium):** Create engine file implementing BaseASR/BaseTTS, add factory branch, add optional dep, add manifest + tests.
 3. **New API backend (medium):** Same as local backend but set `mode: api` in manifest, use `get_api_key()` for auth, use `httpx` for HTTP.
-4. **New task type (hard):** Create new package `revos/{task}/` with base, result, engine, factory. Add CLI commands. See existing ASR/TTS as reference.
+4. **New task type (hard):** Create new package `revospeech/{task}/` with base, result, engine, factory. Add CLI commands. See existing ASR/TTS as reference.
 
 The factory already handles mode dispatch. API key validation is built-in. Just plug in a new engine.

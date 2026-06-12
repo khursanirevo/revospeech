@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from revos.registry.manifest import ModelManifest, load_manifest
-from revos.registry.registry import _models, get, list_models, register
+from revospeech.registry.manifest import ModelManifest, load_manifest
+from revospeech.registry.registry import _models, get, list_models, register
 
 
 @pytest.fixture(autouse=True)

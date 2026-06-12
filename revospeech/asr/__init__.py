@@ -1,7 +1,7 @@
 """RevoS ASR — Automatic Speech Recognition.
 
 Usage:
-    from revos.asr import ASR
+    from revospeech.asr import ASR
 
     asr = ASR('zipformer-v2')
     result = asr.transcribe('audio.wav')
@@ -10,7 +10,7 @@ Usage:
 
 from __future__ import annotations
 
-from revos.registry import get
+from revospeech.registry import get
 
 from .base import BaseASR
 from .result import Segment, Transcript
@@ -36,8 +36,8 @@ def ASR(model_name: str, device: str = "auto") -> BaseASR:
 
     # API-mode gate: validate key, then raise (API engine not yet implemented)
     if manifest.is_api:
-        from revos.config import get_api_key
-        from revos.exceptions import RevosConfigError
+        from revospeech.config import get_api_key
+        from revospeech.exceptions import RevosConfigError
 
         api_key = get_api_key()
         if not api_key:

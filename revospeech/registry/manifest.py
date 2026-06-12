@@ -12,7 +12,7 @@ import yaml
 class ModelManifest:
     """Describes a model's metadata and file layout.
 
-    Loaded from YAML manifests in revos/models/ or ~/.config/revos/models/.
+    Loaded from YAML manifests in revos/models/ or ~/.config/revospeech/models/.
     """
 
     name: str

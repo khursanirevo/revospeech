@@ -1,7 +1,7 @@
 """Usage tracking for gated models.
 
 Provides hooks to track which users load and use gated models.
-Configure via ~/.config/revos/config.yaml or environment variables.
+Configure via ~/.config/revospeech/config.yaml or environment variables.
 """
 
 from __future__ import annotations

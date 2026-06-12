@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from revos.cli.main import cli
+from revospeech.cli.main import cli
 
 
 @pytest.fixture
@@ -45,9 +45,9 @@ def test_synthesize_help(runner: CliRunner):
     assert "--ref-audio" in result.output
 
 
-@patch("revos.asr.ASR")
+@patch("revospeech.asr.ASR")
 def test_transcribe_text_output(mock_asr_cls, runner: CliRunner, sample_wav):
-    from revos.asr.result import Segment, Transcript
+    from revospeech.asr.result import Segment, Transcript
 
     mock_asr = MagicMock()
     mock_asr.transcribe.return_value = Transcript(
@@ -65,11 +65,11 @@ def test_transcribe_text_output(mock_asr_cls, runner: CliRunner, sample_wav):
     assert "HELLO WORLD" in result.output
 
 
-@patch("revos.asr.ASR")
+@patch("revospeech.asr.ASR")
 def test_transcribe_json_output(mock_asr_cls, runner: CliRunner, sample_wav):
     import json
 
-    from revos.asr.result import Segment, Transcript
+    from revospeech.asr.result import Segment, Transcript
 
     mock_asr = MagicMock()
     mock_asr.transcribe.return_value = Transcript(
@@ -86,9 +86,9 @@ def test_transcribe_json_output(mock_asr_cls, runner: CliRunner, sample_wav):
     assert len(data["segments"]) == 1
 
 
-@patch("revos.asr.ASR")
+@patch("revospeech.asr.ASR")
 def test_transcribe_srt_output(mock_asr_cls, runner: CliRunner, sample_wav):
-    from revos.asr.result import Segment, Transcript
+    from revospeech.asr.result import Segment, Transcript
 
     mock_asr = MagicMock()
     mock_asr.transcribe.return_value = Transcript(
@@ -109,12 +109,12 @@ def test_synthesize_requires_text_or_file(runner: CliRunner):
     assert result.exit_code != 0
 
 
-@patch("revos.tts.TTS")
+@patch("revospeech.tts.TTS")
 def test_synthesize_text_output(mock_tts_cls, runner: CliRunner):
     """Test synthesize command with text input and output."""
     import numpy as np
 
-    from revos.tts.result import Audio
+    from revospeech.tts.result import Audio
 
     mock_tts = MagicMock()
     samples = np.random.randn(24000).astype(np.float32) * 0.1
@@ -129,12 +129,12 @@ def test_synthesize_text_output(mock_tts_cls, runner: CliRunner):
     assert "Saved" in result.output
 
 
-@patch("revos.tts.TTS")
+@patch("revospeech.tts.TTS")
 def test_synthesize_from_file(mock_tts_cls, runner: CliRunner):
     """Test synthesize command reading from text file."""
     import numpy as np
 
-    from revos.tts.result import Audio
+    from revospeech.tts.result import Audio
 
     mock_tts = MagicMock()
     samples = np.random.randn(24000).astype(np.float32) * 0.1
@@ -153,11 +153,11 @@ def test_synthesize_from_file(mock_tts_cls, runner: CliRunner):
 
 def test_models_command(runner: CliRunner):
     """Test revos models lists registered models."""
-    from revos.registry.registry import _models
+    from revospeech.registry.registry import _models
 
     _models.clear()
-    from revos.registry.manifest import ModelManifest
-    from revos.registry.registry import register
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import register
 
     register(
         ModelManifest(
@@ -180,7 +180,7 @@ def test_models_command(runner: CliRunner):
 
 def test_models_no_models(runner: CliRunner):
     """Test revos models when no models registered."""
-    from revos.registry.registry import _models
+    from revospeech.registry.registry import _models
 
     _models.clear()
 

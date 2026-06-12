@@ -1,4 +1,4 @@
-"""Model download and caching to ~/.cache/revos/."""
+"""Model download and caching to ~/.cache/revospeech/."""
 
 from __future__ import annotations
 

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from revos.usage import (
+from revospeech.usage import (
     _callbacks,
     get_usage_log,
     register_callback,
@@ -27,7 +27,7 @@ def clear_callbacks():
 def test_track_usage_writes_local(tmp_path: Path):
     """Test that track_usage writes to local JSONL file."""
     log_path = tmp_path / "usage.jsonl"
-    with patch("revos.usage._USAGE_LOG", log_path):
+    with patch("revospeech.usage._USAGE_LOG", log_path):
         track_usage(
             event="model_loaded",
             model_id="test-model",
@@ -51,7 +51,7 @@ def test_track_usage_writes_local(tmp_path: Path):
 def test_track_usage_with_hf_user(tmp_path: Path):
     """Test that HF username is stored directly."""
     log_path = tmp_path / "usage.jsonl"
-    with patch("revos.usage._USAGE_LOG", log_path):
+    with patch("revospeech.usage._USAGE_LOG", log_path):
         track_usage(
             event="model_loaded",
             model_id="revos/test",
@@ -71,7 +71,7 @@ def test_track_usage_calls_callbacks(tmp_path: Path):
     cb = MagicMock()
     register_callback(cb)
 
-    with patch("revos.usage._USAGE_LOG", log_path):
+    with patch("revospeech.usage._USAGE_LOG", log_path):
         track_usage(
             event="model_loaded",
             model_id="test",
@@ -94,7 +94,7 @@ def test_callback_exception_does_not_crash(tmp_path: Path):
     register_callback(bad_cb)
     register_callback(good_cb)
 
-    with patch("revos.usage._USAGE_LOG", log_path):
+    with patch("revospeech.usage._USAGE_LOG", log_path):
         track_usage(
             event="model_loaded",
             model_id="test",
@@ -113,7 +113,7 @@ def test_callback_exception_does_not_crash(tmp_path: Path):
 def test_get_usage_log_empty(tmp_path: Path):
     """Test reading usage log when file doesn't exist."""
     log_path = tmp_path / "nonexistent.jsonl"
-    with patch("revos.usage._USAGE_LOG", log_path):
+    with patch("revospeech.usage._USAGE_LOG", log_path):
         result = get_usage_log()
     assert result == []
 
@@ -126,7 +126,7 @@ def test_get_usage_log_reads_events(tmp_path: Path):
         '{"event": "model_synthesized", "model_name": "b"}\n'
     )
 
-    with patch("revos.usage._USAGE_LOG", log_path):
+    with patch("revospeech.usage._USAGE_LOG", log_path):
         result = get_usage_log()
 
     assert len(result) == 2
@@ -141,7 +141,7 @@ def test_get_usage_log_skips_blank_lines(tmp_path: Path):
         '{"event": "model_loaded"}\n\n  \n{"event": "model_synthesized"}\n'
     )
 
-    with patch("revos.usage._USAGE_LOG", log_path):
+    with patch("revospeech.usage._USAGE_LOG", log_path):
         result = get_usage_log()
 
     assert len(result) == 2

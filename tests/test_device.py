@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from revos.device import auto_detect_device
+from revospeech.device import auto_detect_device
 
 
 def test_detect_cpu_when_no_cuda():

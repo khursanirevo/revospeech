@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from revos.config import get_api_key
-from revos.registry.downloader import CACHE_DIR
-from revos.registry.manifest import ModelManifest
-from revos.registry.registry import get as _get_manifest
-from revos.registry.registry import list_models as _list_manifests
+from revospeech.config import get_api_key
+from revospeech.registry.downloader import CACHE_DIR
+from revospeech.registry.manifest import ModelManifest
+from revospeech.registry.registry import get as _get_manifest
+from revospeech.registry.registry import list_models as _list_manifests
 
 
 @dataclass

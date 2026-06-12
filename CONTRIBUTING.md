@@ -7,11 +7,11 @@ Thank you for your interest in contributing! This guide covers everything you ne
 ```bash
 # Clone and setup
 git clone <repo-url>
-cd revos
+cd revospeech
 uv sync --extra dev
 
 # Run checks
-uv run ruff check revos/ tests/
+uv run ruff check revospeech/ tests/
 uv run pytest tests/ -v
 
 # Build
@@ -23,7 +23,7 @@ uv build
 If the model uses an existing backend (sherpa-onnx for ASR, revovoice for TTS), just add a YAML manifest:
 
 ```yaml
-# ~/.config/revos/models/asr/my-model.yaml
+# ~/.config/revospeech/models/asr/my-model.yaml
 name: my-model
 task: asr
 mode: local
@@ -42,7 +42,7 @@ files:
   tokens: "tokens.txt"
 ```
 
-Then use it: `from revos.asr import ASR; ASR('my-model')`
+Then use it: `from revospeech.asr import ASR; ASR('my-model')`
 
 ### API Models
 
@@ -72,11 +72,11 @@ For gated models, set `hf_private: true`.
 
 ### Remote Catalog
 
-Models added to `revos/models/` in this repo are automatically available via the remote catalog:
+Models added to `revospeech/models/` in this repo are automatically available via the remote catalog:
 
 ```bash
-revos catalog list           # Browse models from this repo
-revos catalog pull <name>    # Install a model locally
+revospeech catalog list           # Browse models from this repo
+revospeech catalog pull <name>    # Install a model locally
 ```
 
 ### Manifest Schema
@@ -109,13 +109,13 @@ All fields except `name`, `task`, `backend` are optional with safe defaults:
 
 ## Adding a New Backend
 
-1. Create `revos/{task}/{backend}_engine.py` inheriting from the base class
-2. Register in the factory function (`revos/{task}/__init__.py`)
+1. Create `revospeech/{task}/{backend}_engine.py` inheriting from the base class
+2. Register in the factory function (`revospeech/{task}/__init__.py`)
 3. Add optional dependency to `pyproject.toml`
 4. Add tests with mocked backend
 5. Add at least one YAML manifest
 
-For API backends: use `get_api_key()` from `revos.config` for auth, set `mode: api` in manifest.
+For API backends: use `get_api_key()` from `revospeech.config` for auth, set `mode: api` in manifest.
 
 See [AGENTS.md](AGENTS.md) for detailed instructions.
 
@@ -125,19 +125,19 @@ Users can discover models via CLI and Python API:
 
 ```bash
 # CLI
-revos models                    # List all models with status
-revos models --ready            # Only ready-to-use models
-revos models --mode api         # Only API models
-revos models-info zipformer-v2  # Detailed model info
-revos search "english fast"     # Fuzzy search
+revospeech models                    # List all models with status
+revospeech models --ready            # Only ready-to-use models
+revospeech models --mode api         # Only API models
+revospeech models-info zipformer-v2  # Detailed model info
+revospeech search "english fast"     # Fuzzy search
 ```
 
 ```python
 # Python
-import revos
-revos.list_models(task="asr", status="ready")
-revos.search_models("english fast")
-revos.check_model("zipformer-v2")
+import revospeech
+revospeech.list_models(task="asr", status="ready")
+revospeech.search_models("english fast")
+revospeech.check_model("zipformer-v2")
 ```
 
 ## Configuration
@@ -146,11 +146,11 @@ API keys and settings are managed via:
 
 ```bash
 # CLI
-revos config set-api-key       # Save API key (stored in ~/.config/revos/config.yaml)
+revospeech config set-api-key       # Save API key (stored in ~/.config/revospeech/config.yaml)
 export REVOLAB_API_KEY=rv-...  # Or use env var
 ```
 
-Resolution order: constructor arg > `REVOLAB_API_KEY` env var > `~/.config/revos/config.yaml`
+Resolution order: constructor arg > `REVOLAB_API_KEY` env var > `~/.config/revospeech/config.yaml`
 
 ## Development Workflow
 
@@ -158,7 +158,7 @@ Resolution order: constructor arg > `REVOLAB_API_KEY` env var > `~/.config/revos
 2. Make changes with tests
 3. Run lint and tests:
    ```bash
-   uv run ruff check revos/ tests/
+   uv run ruff check revospeech/ tests/
    uv run pytest tests/ -v
    ```
 4. Commit with clear messages
@@ -170,7 +170,7 @@ Resolution order: constructor arg > `REVOLAB_API_KEY` env var > `~/.config/revos
 - Lazy imports for optional dependencies (omnivoice, httpx)
 - Factory functions as public API (not classes)
 - YAML manifests for model configuration
-- Custom exceptions from `revos.exceptions` (never bare `ValueError`/`KeyError`)
+- Custom exceptions from `revospeech.exceptions` (never bare `ValueError`/`KeyError`)
 
 ## Testing
 
@@ -179,7 +179,7 @@ Resolution order: constructor arg > `REVOLAB_API_KEY` env var > `~/.config/revos
 uv run pytest tests/ -v
 
 # With coverage
-uv run pytest tests/ --cov=revos --cov-report=term-missing
+uv run pytest tests/ --cov=revospeech --cov-report=term-missing
 
 # Only fast tests (exclude real inference)
 uv run pytest tests/ -v -m "not slow"
@@ -190,7 +190,7 @@ Markers: `slow` (real model download), `api` (requires API key), `roundtrip` (TT
 ## Project Structure
 
 ```
-revos/
+revospeech/
   asr/             # ASR engines (sherpa-onnx, future: revolab API)
   tts/             # TTS engines (revovoice, future: revolab API)
   registry/        # Model manifests, registry, downloader, status

@@ -6,7 +6,7 @@ import logging
 
 import numpy as np
 
-from revos.registry import get
+from revospeech.registry import get
 
 from .base import BaseTTS
 from .result import Audio
@@ -117,7 +117,7 @@ class RevoVoiceTTS(BaseTTS):
         logger.info("RevoVoice TTS model %s loaded", model_name)
 
         # Track gated model usage
-        from revos.usage import track_usage
+        from revospeech.usage import track_usage
 
         track_usage(
             event="model_loaded",

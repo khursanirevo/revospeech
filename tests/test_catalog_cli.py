@@ -7,9 +7,9 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from revos.catalog import _CACHE_FILE
-from revos.cli.main import cli
-from revos.registry.registry import _models
+from revospeech.catalog import _CACHE_FILE
+from revospeech.cli.main import cli
+from revospeech.registry.registry import _models
 
 
 @pytest.fixture(autouse=True)
@@ -28,8 +28,8 @@ def runner():
     return CliRunner()
 
 
-@patch("revos.catalog._download_raw")
-@patch("revos.catalog._list_yaml_files")
+@patch("revospeech.catalog._download_raw")
+@patch("revospeech.catalog._list_yaml_files")
 def test_catalog_list_command(mock_list, mock_download, runner):
     """revos catalog list shows models from GitHub."""
     mock_list.return_value = ["revos/models/tts/revovoice.yaml"]
@@ -53,7 +53,7 @@ def test_catalog_list_command(mock_list, mock_download, runner):
     assert "Fetching catalog" in result.output
 
 
-@patch("revos.catalog._list_yaml_files")
+@patch("revospeech.catalog._list_yaml_files")
 def test_catalog_list_error(mock_list, runner):
     """revos catalog list handles errors gracefully."""
     mock_list.side_effect = Exception("network error")
@@ -63,8 +63,8 @@ def test_catalog_list_error(mock_list, runner):
     assert "Error" in result.output
 
 
-@patch("revos.catalog._download_raw")
-@patch("revos.catalog._list_yaml_files")
+@patch("revospeech.catalog._download_raw")
+@patch("revospeech.catalog._list_yaml_files")
 def test_catalog_list_empty(mock_list, mock_download, runner):
     """revos catalog list shows message when no models found."""
     mock_list.return_value = []
@@ -74,8 +74,8 @@ def test_catalog_list_empty(mock_list, mock_download, runner):
     assert "No models found" in result.output
 
 
-@patch("revos.catalog._download_raw")
-@patch("revos.catalog._list_yaml_files")
+@patch("revospeech.catalog._download_raw")
+@patch("revospeech.catalog._list_yaml_files")
 def test_catalog_list_filter_by_task(mock_list, mock_download, runner):
     """revos catalog list -t tts filters by task."""
     mock_list.return_value = ["revos/models/tts/revovoice.yaml"]
@@ -98,8 +98,8 @@ def test_catalog_list_filter_by_task(mock_list, mock_download, runner):
     assert "revovoice" in result.output
 
 
-@patch("revos.catalog._download_raw")
-@patch("revos.catalog._list_yaml_files")
+@patch("revospeech.catalog._download_raw")
+@patch("revospeech.catalog._list_yaml_files")
 def test_catalog_pull_command(mock_list, mock_download, runner, tmp_path):
     """revos catalog pull installs a model."""
     mock_list.return_value = ["revos/models/tts/revovoice.yaml"]
@@ -118,7 +118,7 @@ def test_catalog_pull_command(mock_list, mock_download, runner, tmp_path):
     mock_download.side_effect = [manifest, manifest]
 
     models_dir = tmp_path / "models"
-    with patch("revos.catalog._USER_MODELS_DIR", models_dir):
+    with patch("revospeech.catalog._USER_MODELS_DIR", models_dir):
         result = runner.invoke(
             cli, ["catalog", "pull", "revovoice"]
         )
@@ -127,7 +127,7 @@ def test_catalog_pull_command(mock_list, mock_download, runner, tmp_path):
     assert "Installed" in result.output
 
 
-@patch("revos.catalog._list_yaml_files")
+@patch("revospeech.catalog._list_yaml_files")
 def test_catalog_pull_not_found(mock_list, runner):
     """revos catalog pull handles missing model."""
     mock_list.return_value = []

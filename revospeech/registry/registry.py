@@ -49,7 +49,7 @@ def get(name: str, task: str) -> ModelManifest:
                 raise KeyError(
                     f"Model '{name}' (task={task}) not found. "
                     f"No {task} models are registered. "
-                    f"Add a manifest in ~/.config/revos/models/{task}/"
+                    f"Add a manifest in ~/.config/revospeech/models/{task}/"
                 )
             raise KeyError(
                 f"Model '{name}' (task={task}) not found. "
@@ -102,7 +102,7 @@ def _load_builtin_manifests() -> None:
 
 
 def _load_user_manifests() -> None:
-    """Load user manifests from ~/.config/revos/models/."""
+    """Load user manifests from ~/.config/revospeech/models/."""
     user_dir = Path.home() / ".config" / "revos" / "models"
     _load_manifests_from_dir(user_dir)
 

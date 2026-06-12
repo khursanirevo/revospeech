@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from revos.asr.audio import read_waveform
+from revospeech.asr.audio import read_waveform
 
 
 def _write_wav(path: Path, samples: np.ndarray, sr: int) -> None:

@@ -2,7 +2,7 @@
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/revos/revos/ci.yml?branch=master)](.github/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/revos/revospeech/ci.yml?branch=master)](.github/workflows/ci.yml)
 
 A unified Python library for speech AI — ASR and TTS using open models.
 
@@ -38,7 +38,7 @@ Get your token at https://huggingface.co/settings/tokens
 
 ### Important Notes
 
-- `revospeech[gpu]` and `revospeech[all]` install `onnxruntime-gpu`, which **conflicts** with `onnxruntime`. If you already have `revos` installed, uninstall it first before installing the GPU variant before installing the GPU variant.
+- `revospeech[gpu]` and `revospeech[all]` install `onnxruntime-gpu`, which **conflicts** with `onnxruntime`. If you already have `revospeech` installed, uninstall it first before installing the GPU variant before installing the GPU variant.
 - Audio formats supported: WAV, FLAC, OGG, and any format supported by `libsndfile`.
 
 ## Quick Start
@@ -46,7 +46,7 @@ Get your token at https://huggingface.co/settings/tokens
 ### ASR (Automatic Speech Recognition)
 
 ```python
-from revos.asr import ASR
+from revospeech.asr import ASR
 
 asr = ASR('zipformer-v2')
 result = asr.transcribe('meeting.wav')
@@ -60,7 +60,7 @@ for seg in result.segments:
 ### TTS (Text-to-Speech)
 
 ```python
-from revos.tts import TTS
+from revospeech.tts import TTS
 
 # Basic synthesis
 tts = TTS('revovoice')
@@ -79,20 +79,20 @@ audio.save('cloned.wav')
 ### Model Discovery
 
 ```python
-import revos
+import revospeech
 
 # List all models with status
-revos.list_models()
+revospeech.list_models()
 
 # Filter by task, mode, status
-revos.list_models(task="asr", status="ready")
-revos.list_models(mode="api")
+revospeech.list_models(task="asr", status="ready")
+revospeech.list_models(mode="api")
 
 # Fuzzy search
-revos.search_models("english fast")
+revospeech.search_models("english fast")
 
 # Check a specific model
-status = revos.check_model("zipformer-v2")
+status = revospeech.check_model("zipformer-v2")
 print(status.is_ready)
 ```
 
@@ -100,43 +100,43 @@ print(status.is_ready)
 
 ```bash
 # Transcribe audio
-revos transcribe -m zipformer-v2 audio.wav
+revospeech transcribe -m zipformer-v2 audio.wav
 
 # JSON output
-revos transcribe -m zipformer-v2 --json audio.wav
+revospeech transcribe -m zipformer-v2 --json audio.wav
 
 # SRT subtitles
-revos transcribe -m zipformer-v2 --srt audio.wav
+revospeech transcribe -m zipformer-v2 --srt audio.wav
 
 # Synthesize speech
-revos synthesize -m revovoice -t "Hello, world!" -o output.wav
+revospeech synthesize -m revovoice -t "Hello, world!" -o output.wav
 
 # From text file
-revos synthesize -m revovoice -f script.txt -o audiobook.wav
+revospeech synthesize -m revovoice -f script.txt -o audiobook.wav
 
 # List available models (with status icons)
-revos models
-revos models --ready           # Only ready-to-use models
-revos models --mode api        # Only API models
-revos models --task asr        # Filter by task
+revospeech models
+revospeech models --ready           # Only ready-to-use models
+revospeech models --mode api        # Only API models
+revospeech models --task asr        # Filter by task
 
 # Detailed model info
-revos models-info zipformer-v2
+revospeech models-info zipformer-v2
 
 # Fuzzy search
-revos search "english fast"
+revospeech search "english fast"
 
 # Browse remote catalog
-revos catalog list
+revospeech catalog list
 
 # Pull a model from the catalog
-revos catalog pull revovoice
+revospeech catalog pull revovoice
 
 # API key management
-revos config set-api-key
+revospeech config set-api-key
 
 # Show environment info
-revos info
+revospeech info
 ```
 
 ## Available Models
@@ -149,7 +149,7 @@ revos info
 ### Model Directory
 
 ```
-revos/models/
+revospeech/models/
 ├── asr/
 │   └── zipformer_v2.yaml    # Open — downloads from GitHub releases
 └── tts/
@@ -172,7 +172,7 @@ and require approval before use.
 
 3. **Use the model:** Once approved, the model will download automatically on first use:
    ```python
-   from revos.tts import TTS
+   from revospeech.tts import TTS
    tts = TTS('revovoice')  # Will prompt for HF login if not authenticated
    ```
 
@@ -188,29 +188,29 @@ For cloud API backends, set your API key:
 # Option 1: Environment variable
 export REVOLAB_API_KEY=rv-your-key-here
 
-# Option 2: CLI command (saves to ~/.config/revos/config.yaml)
-revos config set-api-key
+# Option 2: CLI command (saves to ~/.config/revospeech/config.yaml)
+revospeech config set-api-key
 ```
 
-Resolution order: constructor arg > `REVOLAB_API_KEY` env var > `~/.config/revos/config.yaml`
+Resolution order: constructor arg > `REVOLAB_API_KEY` env var > `~/.config/revospeech/config.yaml`
 
 ### Catalog Source
 
 Override the catalog source with:
 ```bash
-export REVOS_CATALOG_REPO="myorg/revos"    # env var
+export REVOS_CATALOG_REPO="myorg/revospeech"    # env var
 ```
-Or in `~/.config/revos/config.yaml`:
+Or in `~/.config/revospeech/config.yaml`:
 ```yaml
-catalog_repo: "myorg/revos"
+catalog_repo: "myorg/revospeech"
 ```
 
 ## Adding Custom Models
 
-Add a YAML manifest to `~/.config/revos/models/`:
+Add a YAML manifest to `~/.config/revospeech/models/`:
 
 ```yaml
-# ~/.config/revos/models/asr/my-model.yaml
+# ~/.config/revospeech/models/asr/my-model.yaml
 name: my-custom-model
 task: asr
 mode: local
@@ -229,12 +229,12 @@ files:
   tokens: "tokens.txt"
 ```
 
-Then use it: `from revos.asr import ASR; asr = ASR('my-custom-model')`
+Then use it: `from revospeech.asr import ASR; asr = ASR('my-custom-model')`
 
 ### API Models
 
 ```yaml
-# ~/.config/revos/models/asr/my-api-model.yaml
+# ~/.config/revospeech/models/asr/my-api-model.yaml
 name: my-api-model
 task: asr
 mode: api
@@ -258,14 +258,14 @@ Without `revision`, the latest version from the default branch is used.
 
 ### Remote Catalog
 
-The catalog fetches available models directly from this repository on GitHub. Team members add YAML manifests to `revos/models/` and users discover them without upgrading.
+The catalog fetches available models directly from this repository on GitHub. Team members add YAML manifests to `revospeech/models/` and users discover them without upgrading.
 
 ```bash
 # Browse all available models from the repo
-revos catalog list
+revospeech catalog list
 
 # Install a model locally
-revos catalog pull revovoice
+revospeech catalog pull revovoice
 ```
 
 ## Documentation
@@ -277,8 +277,8 @@ revos catalog pull revovoice
 ## Project Structure
 
 ```
-revos/
-├── revos/
+revospeech/
+├── revospeech/
 │   ├── asr/           # ASR engines (sherpa-onnx)
 │   ├── tts/           # TTS engines (RevoVoice)
 │   ├── registry/      # Model manifests, registry, downloader, status

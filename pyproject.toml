@@ -49,12 +49,12 @@ Repository = "https://github.com/khursanirevo/revos"
 Issues = "https://github.com/khursanirevo/revos/issues"
 
 [project.scripts]
-revos = "revos.cli.main:cli"
+revospeech = "revospeech.cli.main:cli"
 
-[project.entry-points."revos.models"]
+[project.entry-points."revospeech.models"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["revos"]
+packages = ["revospeech"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

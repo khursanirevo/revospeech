@@ -6,8 +6,8 @@ import logging
 
 import sherpa_onnx
 
-from revos.device import auto_detect_device
-from revos.registry import ensure_model, get
+from revospeech.device import auto_detect_device
+from revospeech.registry import ensure_model, get
 
 from .audio import read_waveform
 from .base import BaseASR
@@ -63,7 +63,7 @@ class SherpaOnnxASR(BaseASR):
 
         # Track gated model usage
         if manifest.hf_private or manifest.model_url.startswith("http"):
-            from revos.usage import track_usage
+            from revospeech.usage import track_usage
 
             track_usage(
                 event="model_loaded",

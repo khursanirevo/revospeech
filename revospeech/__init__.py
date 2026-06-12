@@ -1,8 +1,8 @@
 """RevoS — A unified Python library for speech AI.
 
 Quick start:
-    from revos.asr import ASR
-    from revos.tts import TTS
+    from revospeech.asr import ASR
+    from revospeech.tts import TTS
 """
 
 try:
@@ -16,15 +16,15 @@ except Exception:
 def __getattr__(name: str):
     """Lazy re-exports for convenience: from revos import ASR, TTS."""
     if name == "ASR":
-        from revos.asr import ASR
+        from revospeech.asr import ASR
 
         return ASR
     if name == "TTS":
-        from revos.tts import TTS
+        from revospeech.tts import TTS
 
         return TTS
     if name == "configure_logging":
-        from revos.logging_config import configure_logging
+        from revospeech.logging_config import configure_logging
 
         return configure_logging
     raise AttributeError(f"module 'revos' has no attribute {name!r}")
@@ -38,7 +38,7 @@ def list_models(
     capability: str | None = None,
 ) -> list:
     """List available models with optional filters."""
-    from revos.registry.status import list_model_statuses
+    from revospeech.registry.status import list_model_statuses
 
     return list_model_statuses(
         task=task,
@@ -53,7 +53,7 @@ def search_models(query: str) -> list:
     """Search models by name, tags, or description using fuzzy matching."""
     from difflib import SequenceMatcher
 
-    from revos.registry.status import list_model_statuses
+    from revospeech.registry.status import list_model_statuses
 
     query_lower = query.lower()
     all_models = list_model_statuses()

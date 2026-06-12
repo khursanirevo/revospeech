@@ -1,7 +1,7 @@
 """RevoS TTS — Text-to-Speech.
 
 Usage:
-    from revos.tts import TTS
+    from revospeech.tts import TTS
 
     tts = TTS('revovoice')
     audio = tts.synthesize('Hello, world!')
@@ -10,7 +10,7 @@ Usage:
 
 from __future__ import annotations
 
-from revos.registry import get
+from revospeech.registry import get
 
 from .base import BaseTTS
 from .result import Audio
@@ -36,8 +36,8 @@ def TTS(model_name: str, device: str = "auto") -> BaseTTS:
 
     # API-mode gate: validate key, then raise (API engine not yet implemented)
     if manifest.is_api:
-        from revos.config import get_api_key
-        from revos.exceptions import RevosConfigError
+        from revospeech.config import get_api_key
+        from revospeech.exceptions import RevosConfigError
 
         api_key = get_api_key()
         if not api_key:

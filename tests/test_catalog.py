@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from revos.catalog import (
+from revospeech.catalog import (
     DEFAULT_CATALOG_REPO,
     _download_raw,
     _list_yaml_files,
@@ -16,7 +16,7 @@ from revos.catalog import (
     list_catalog,
     pull_model,
 )
-from revos.registry.registry import _models
+from revospeech.registry.registry import _models
 
 
 @pytest.fixture(autouse=True)
@@ -29,7 +29,7 @@ def clear_registry():
 def test_get_catalog_repo_default():
     """Default catalog repo is used when no config is set."""
     with patch.dict(os.environ, {}, clear=True):
-        with patch("revos.catalog.Path") as mock_path:
+        with patch("revospeech.catalog.Path") as mock_path:
             mock_config = MagicMock()
             mock_config.exists.return_value = False
             mock_path.home.return_value.__truediv__ = MagicMock(
@@ -55,7 +55,7 @@ def test_get_catalog_repo_env_beats_config():
 def test_list_catalog_github_error():
     """list_catalog raises RuntimeError when GitHub is unreachable."""
     with patch(
-        "revos.catalog._list_yaml_files",
+        "revospeech.catalog._list_yaml_files",
         side_effect=Exception("network error"),
     ):
         with patch.dict(os.environ, {"REVOS_CATALOG_REPO": "bad/repo"}):
@@ -63,8 +63,8 @@ def test_list_catalog_github_error():
                 list_catalog()
 
 
-@patch("revos.catalog._download_raw")
-@patch("revos.catalog._list_yaml_files")
+@patch("revospeech.catalog._download_raw")
+@patch("revospeech.catalog._list_yaml_files")
 def test_list_catalog_fetches_manifests(mock_list, mock_download):
     """list_catalog fetches and parses manifests from GitHub."""
     mock_list.return_value = [
@@ -106,8 +106,8 @@ def test_list_catalog_fetches_manifests(mock_list, mock_download):
     assert "zipformer-v2" in names
 
 
-@patch("revos.catalog._download_raw")
-@patch("revos.catalog._list_yaml_files")
+@patch("revospeech.catalog._download_raw")
+@patch("revospeech.catalog._list_yaml_files")
 def test_list_catalog_filters_by_task(mock_list, mock_download):
     """list_catalog filters results by task type."""
     mock_list.return_value = [
@@ -135,8 +135,8 @@ def test_list_catalog_filters_by_task(mock_list, mock_download):
     assert results[0].task == "tts"
 
 
-@patch("revos.catalog._download_raw")
-@patch("revos.catalog._list_yaml_files")
+@patch("revospeech.catalog._download_raw")
+@patch("revospeech.catalog._list_yaml_files")
 def test_pull_model_installs_locally(mock_list, mock_download, tmp_path):
     """pull_model downloads and installs manifest to user dir."""
     mock_list.return_value = ["revos/models/tts/revovoice.yaml"]
@@ -157,13 +157,13 @@ def test_pull_model_installs_locally(mock_list, mock_download, tmp_path):
     mock_download.side_effect = [manifest_content, manifest_content]
 
     models_dir = tmp_path / "models"
-    with patch("revos.catalog._USER_MODELS_DIR", models_dir):
+    with patch("revospeech.catalog._USER_MODELS_DIR", models_dir):
         pull_model("revovoice")
 
     assert (models_dir / "tts" / "revovoice.yaml").exists()
 
 
-@patch("revos.catalog._list_yaml_files")
+@patch("revospeech.catalog._list_yaml_files")
 def test_pull_model_not_found(mock_list):
     """pull_model raises KeyError when model is not in catalog."""
     mock_list.return_value = []
@@ -173,7 +173,7 @@ def test_pull_model_not_found(mock_list):
             pull_model("nonexistent")
 
 
-@patch("revos.catalog.urllib.request.urlopen")
+@patch("revospeech.catalog.urllib.request.urlopen")
 def test_list_yaml_files(mock_urlopen):
     """_list_yaml_files parses GitHub API response."""
     api_response = [
@@ -204,7 +204,7 @@ def test_list_yaml_files(mock_urlopen):
     assert files == ["revos/models/tts/revovoice.yaml"]
 
 
-@patch("revos.catalog.urllib.request.urlopen")
+@patch("revospeech.catalog.urllib.request.urlopen")
 def test_download_raw(mock_urlopen):
     """_download_raw fetches file content from GitHub."""
     mock_resp = MagicMock()

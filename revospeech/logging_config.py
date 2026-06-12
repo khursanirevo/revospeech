@@ -3,7 +3,7 @@
 Provides a simple way to control log output verbosity.
 
 Usage:
-    import revos
+    import revospeech
     revos.configure_logging("DEBUG")   # Verbose
     revos.configure_logging("WARNING") # Quiet
 """

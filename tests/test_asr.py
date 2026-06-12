@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from revos.asr.result import Segment, Transcript
+from revospeech.asr.result import Segment, Transcript
 
 
 def test_segment_creation():
@@ -22,13 +22,13 @@ def test_transcript_creation():
     assert len(t.segments) == 1
 
 
-@patch("revos.asr.sherpa_engine.sherpa_onnx")
-@patch("revos.asr.sherpa_engine.ensure_model")
-@patch("revos.asr.sherpa_engine.get")
+@patch("revospeech.asr.sherpa_engine.sherpa_onnx")
+@patch("revospeech.asr.sherpa_engine.ensure_model")
+@patch("revospeech.asr.sherpa_engine.get")
 def test_asr_transcribe(mock_get, mock_ensure, mock_sherpa, sample_wav, tmp_path):
     """Test ASR transcribe with mocked sherpa_onnx."""
-    from revos.asr.sherpa_engine import SherpaOnnxASR
-    from revos.registry.manifest import ModelManifest
+    from revospeech.asr.sherpa_engine import SherpaOnnxASR
+    from revospeech.registry.manifest import ModelManifest
 
     # Setup manifest
     manifest = ModelManifest(
@@ -79,17 +79,17 @@ def test_asr_transcribe(mock_get, mock_ensure, mock_sherpa, sample_wav, tmp_path
     assert transcript.language == "en"
 
 
-@patch("revos.asr.sherpa_engine.SherpaOnnxASR")
+@patch("revospeech.asr.sherpa_engine.SherpaOnnxASR")
 def test_asr_factory(mock_cls):
     """Test the ASR() factory function."""
-    from revos.asr import ASR
+    from revospeech.asr import ASR
 
     mock_instance = MagicMock()
     mock_cls.return_value = mock_instance
 
     # Need to register a manifest first
-    from revos.registry.manifest import ModelManifest
-    from revos.registry.registry import register
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import register
 
     register(
         ModelManifest(
@@ -109,9 +109,9 @@ def test_asr_factory(mock_cls):
 
 def test_asr_unsupported_backend():
     """Test that unsupported backend raises ValueError."""
-    from revos.asr import ASR
-    from revos.registry.manifest import ModelManifest
-    from revos.registry.registry import register
+    from revospeech.asr import ASR
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import register
 
     register(
         ModelManifest(

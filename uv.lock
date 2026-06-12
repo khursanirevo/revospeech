@@ -2060,7 +2060,7 @@ wheels = [
 ]
 
 [[package]]
-name = "revos"
+name = "revospeech"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
@@ -2076,8 +2076,12 @@ dependencies = [
 
 [package.optional-dependencies]
 all = [
+    { name = "httpx" },
     { name = "omnivoice" },
     { name = "onnxruntime-gpu" },
+]
+api = [
+    { name = "httpx" },
 ]
 dev = [
     { name = "pytest" },
@@ -2094,6 +2098,8 @@ tts = [
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.0" },
+    { name = "httpx", marker = "extra == 'all'", specifier = ">=0.27" },
+    { name = "httpx", marker = "extra == 'api'", specifier = ">=0.27" },
     { name = "huggingface-hub", specifier = ">=1.11.0" },
     { name = "numpy" },
     { name = "omnivoice", marker = "extra == 'all'" },
@@ -2109,7 +2115,7 @@ requires-dist = [
     { name = "sherpa-onnx-core" },
     { name = "soundfile" },
 ]
-provides-extras = ["gpu", "tts", "all", "dev"]
+provides-extras = ["gpu", "tts", "api", "all", "dev"]
 
 [[package]]
 name = "rich"

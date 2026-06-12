@@ -10,9 +10,9 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from revos.registry.manifest import ModelManifest
-from revos.registry.registry import _models
-from revos.tts.result import Audio
+from revospeech.registry.manifest import ModelManifest
+from revospeech.registry.registry import _models
+from revospeech.tts.result import Audio
 
 
 def test_audio_creation():
@@ -60,10 +60,10 @@ def _make_mock_omnivoice():
     return mock_module, mock_cls, mock_model
 
 
-@patch("revos.tts.revovoice_engine._get_hf_user", return_value=None)
+@patch("revospeech.tts.revovoice_engine._get_hf_user", return_value=None)
 def test_revovoice_engine_synthesize(mock_hf_user, tmp_path: Path):
     """Test RevoVoiceTTS.synthesize with mocked model."""
-    from revos.registry.registry import register
+    from revospeech.registry.registry import register
 
     register(
         ModelManifest(
@@ -81,7 +81,7 @@ def test_revovoice_engine_synthesize(mock_hf_user, tmp_path: Path):
 
     mock_module, mock_cls, mock_model = _make_mock_omnivoice()
     with patch.dict(sys.modules, {"omnivoice": mock_module}):
-        from revos.tts.revovoice_engine import RevoVoiceTTS
+        from revospeech.tts.revovoice_engine import RevoVoiceTTS
 
         engine = RevoVoiceTTS("test-tts", device="cpu")
         result = engine.synthesize("Hello world")
@@ -91,10 +91,10 @@ def test_revovoice_engine_synthesize(mock_hf_user, tmp_path: Path):
     mock_model.generate.assert_called_once_with(text="Hello world", speed=1.0)
 
 
-@patch("revos.tts.revovoice_engine._get_hf_user", return_value=None)
+@patch("revospeech.tts.revovoice_engine._get_hf_user", return_value=None)
 def test_revovoice_engine_save_to_file(mock_hf_user, tmp_path: Path):
     """Test RevoVoiceTTS.synthesize saves to file when output_path given."""
-    from revos.registry.registry import register
+    from revospeech.registry.registry import register
 
     register(
         ModelManifest(
@@ -112,7 +112,7 @@ def test_revovoice_engine_save_to_file(mock_hf_user, tmp_path: Path):
 
     mock_module, _, _ = _make_mock_omnivoice()
     with patch.dict(sys.modules, {"omnivoice": mock_module}):
-        from revos.tts.revovoice_engine import RevoVoiceTTS
+        from revospeech.tts.revovoice_engine import RevoVoiceTTS
 
         engine = RevoVoiceTTS("test-tts", device="cpu")
         out_path = str(tmp_path / "output.wav")
@@ -121,10 +121,10 @@ def test_revovoice_engine_save_to_file(mock_hf_user, tmp_path: Path):
     assert (tmp_path / "output.wav").exists()
 
 
-@patch("revos.tts.revovoice_engine._get_hf_user", return_value=None)
+@patch("revospeech.tts.revovoice_engine._get_hf_user", return_value=None)
 def test_revovoice_engine_gated_error(mock_hf_user):
     """Test that OSError for gated repo raises clear RuntimeError."""
-    from revos.registry.registry import register
+    from revospeech.registry.registry import register
 
     register(
         ModelManifest(
@@ -148,7 +148,7 @@ def test_revovoice_engine_gated_error(mock_hf_user):
     mock_module.OmniVoice = mock_cls
 
     with patch.dict(sys.modules, {"omnivoice": mock_module}):
-        from revos.tts.revovoice_engine import RevoVoiceTTS
+        from revospeech.tts.revovoice_engine import RevoVoiceTTS
 
         with pytest.raises(RuntimeError, match="HuggingFace authentication"):
             RevoVoiceTTS("gated-tts", device="cpu")
@@ -156,7 +156,7 @@ def test_revovoice_engine_gated_error(mock_hf_user):
 
 def test_tts_unsupported_backend():
     """Test that unsupported backend raises ValueError."""
-    from revos.registry.registry import register
+    from revospeech.registry.registry import register
 
     register(
         ModelManifest(
@@ -170,7 +170,7 @@ def test_tts_unsupported_backend():
             description="",
         )
     )
-    from revos.tts import TTS
+    from revospeech.tts import TTS
 
     with pytest.raises(ValueError, match="Supported backends: revovoice"):
         TTS("bad-backend")

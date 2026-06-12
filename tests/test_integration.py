@@ -33,7 +33,7 @@ class TestASRIntegration:
 
     def test_model_downloads_and_loads(self, tmp_path: Path):
         """Model downloads from GitHub and initializes."""
-        from revos.asr import ASR
+        from revospeech.asr import ASR
 
         asr = ASR("zipformer-v2", device="cpu")
         assert asr.model_name == "zipformer-v2"
@@ -45,7 +45,7 @@ class TestASRIntegration:
         This test verifies the pipeline runs without errors
         and returns the expected result structure.
         """
-        from revos.asr import ASR
+        from revospeech.asr import ASR
 
         wav_path = _make_wav(tmp_path / "test.wav")
         asr = ASR("zipformer-v2", device="cpu")
@@ -104,7 +104,7 @@ class TestASRIntegration:
 
     def test_model_cached_on_second_load(self, tmp_path: Path):
         """Second load uses cached model (no re-download)."""
-        from revos.asr import ASR
+        from revospeech.asr import ASR
 
         asr = ASR("zipformer-v2", device="cpu")
         wav_path = _make_wav(tmp_path / "test.wav")
@@ -141,14 +141,14 @@ class TestTTSIntegration:
 
     def test_model_loads(self):
         """RevoVoice model loads without errors."""
-        from revos.tts import TTS
+        from revospeech.tts import TTS
 
         tts = TTS("revovoice", device="cpu")
         assert tts.model_name == "revovoice"
 
     def test_synthesize_basic(self, tmp_path: Path):
         """Basic synthesis produces valid audio."""
-        from revos.tts import TTS
+        from revospeech.tts import TTS
 
         tts = TTS("revovoice", device="cpu")
         audio = tts.synthesize("Hello, world!")
@@ -160,7 +160,7 @@ class TestTTSIntegration:
 
     def test_synthesize_saves_to_file(self, tmp_path: Path):
         """Synthesized audio saves to a valid WAV file."""
-        from revos.tts import TTS
+        from revospeech.tts import TTS
 
         tts = TTS("revovoice", device="cpu")
         out_path = str(tmp_path / "output.wav")
@@ -173,7 +173,7 @@ class TestTTSIntegration:
 
     def test_synthesize_long_text(self, tmp_path: Path):
         """synthesize_long splits and concatenates audio."""
-        from revos.tts import TTS
+        from revospeech.tts import TTS
 
         tts = TTS("revovoice", device="cpu")
 
@@ -192,7 +192,7 @@ class TestTTSIntegration:
 
     def test_synthesize_with_speed(self, tmp_path: Path):
         """Speed parameter affects audio duration."""
-        from revos.tts import TTS
+        from revospeech.tts import TTS
 
         tts = TTS("revovoice", device="cpu")
         text = "This is a speed test."
@@ -260,7 +260,7 @@ class TestCatalogIntegration:
 
     def test_catalog_list_real(self):
         """Catalog list fetches real manifests from GitHub."""
-        from revos.catalog import list_catalog
+        from revospeech.catalog import list_catalog
 
         models = list_catalog()
         assert len(models) >= 2  # At least zipformer-v2 + revovoice
@@ -270,7 +270,7 @@ class TestCatalogIntegration:
 
     def test_catalog_list_filter_asr(self):
         """Catalog list filters by task."""
-        from revos.catalog import list_catalog
+        from revospeech.catalog import list_catalog
 
         models = list_catalog(task="asr")
         assert len(models) >= 1
@@ -278,7 +278,7 @@ class TestCatalogIntegration:
 
     def test_catalog_pull_real(self, tmp_path: Path):
         """Catalog pull downloads and installs a manifest."""
-        from revos.catalog import pull_model
+        from revospeech.catalog import pull_model
 
         models_dir = tmp_path / "models"
         import revos.catalog as cat_mod

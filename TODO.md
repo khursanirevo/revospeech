@@ -1,6 +1,6 @@
 # TODO — RevoS Open Source Readiness
 
-> **Goal**: Ship `revos` as revolab's open-source speech AI library.
+> **Goal**: Ship `revospeech` as revolab's open-source speech AI library.
 > Users run models **locally** (weights from HuggingFace) or via **revolab cloud API** (API key).
 > Architecture is extensible so the community can plug in their own providers.
 > **Developer experience is the #1 priority.**
@@ -19,42 +19,42 @@
 
 ### 0.2 Configuration & API Key Management
 
-- [x] Create `revos/config.py` — centralized configuration
-  - Resolve API key in priority order: constructor arg > env var (`REVOLAB_API_KEY`) > config file (`~/.config/revos/config.yaml`)
+- [x] Create `revospeech/config.py` — centralized configuration
+  - Resolve API key in priority order: constructor arg > env var (`REVOLAB_API_KEY`) > config file (`~/.config/revospeech/config.yaml`)
   - `get_api_key() -> str | None`
   - `set_api_key(key: str) -> None`
-  - Load/save `~/.config/revos/config.yaml`
+  - Load/save `~/.config/revospeech/config.yaml`
 - [x] Validate API key presence before API calls — raise `RevosConfigError` with exact instructions
-- [x] Add `revos config set-api-key` CLI command
+- [x] Add `revospeech config set-api-key` CLI command
 
 ### 0.3 Extensible Backend System
 
-> **Decision:** The `revos/backends/` package was rejected during RALPLAN planning.
-> Instead, backends are co-located with existing engines in `revos/asr/` and `revos/tts/`.
+> **Decision:** The `revospeech/backends/` package was rejected during RALPLAN planning.
+> Instead, backends are co-located with existing engines in `revospeech/asr/` and `revospeech/tts/`.
 > The factory pattern already handles mode-based dispatch. Adding a new backend means:
-> 1. Create `revos/{task}/{backend}_engine.py` implementing BaseASR/BaseTTS
-> 2. Add a factory branch in `revos/{task}/__init__.py`
+> 1. Create `revospeech/{task}/{backend}_engine.py` implementing BaseASR/BaseTTS
+> 2. Add a factory branch in `revospeech/{task}/__init__.py`
 > 3. Add a YAML manifest with `mode: local` or `mode: api`
 > See [AGENTS.md](AGENTS.md) for step-by-step instructions.
 
-- [x] ~~Create `revos/backends/` package~~ — Rejected, use existing factory pattern
+- [x] ~~Create `revospeech/backends/` package~~ — Rejected, use existing factory pattern
 - [x] Factory dispatches by `manifest.mode` + `manifest.backend`
 - [x] API mode validates API key via `get_api_key()`, raises `RevosConfigError` if missing
-- [ ] Auto-discover backends via entry points (`revos.backends` group) — deferred to post-MVP
+- [ ] Auto-discover backends via entry points (`revospeech.backends` group) — deferred to post-MVP
 
 ### 0.4 revolab Cloud API Backend
 
-- [ ] Create `revos/asr/revolab_engine.py` — revolab's ASR API backend (**BLOCKED** — waiting on API contract)
-- [ ] Create `revos/tts/revolab_engine.py` — revolab's TTS API backend (**BLOCKED** — waiting on API contract)
+- [ ] Create `revospeech/asr/revolab_engine.py` — revolab's ASR API backend (**BLOCKED** — waiting on API contract)
+- [ ] Create `revospeech/tts/revolab_engine.py` — revolab's TTS API backend (**BLOCKED** — waiting on API contract)
 - [ ] Handle auth, retries, rate limiting, streaming responses
 - [ ] Map API responses to existing `Transcript` and `Audio` result types
-- [ ] Add `httpx` as optional dependency (`revos[api]`)
+- [ ] Add `httpx` as optional dependency (`revospeech[api]`)
 
 ### 0.5 ASR/TTS Factory Updates
 
-- [x] Update `revos/asr/__init__.py` factory: check manifest mode → local engine or API backend
-- [x] Update `revos/tts/__init__.py` factory: same logic
-- [x] Resolve API key via `revos.config` before constructing API backend
+- [x] Update `revospeech/asr/__init__.py` factory: check manifest mode → local engine or API backend
+- [x] Update `revospeech/tts/__init__.py` factory: same logic
+- [x] Resolve API key via `revospeech.config` before constructing API backend
 - [x] User code stays identical — `ASR("model-name")` and `TTS("model-name")` work for both local and API models
 
 ---
@@ -75,36 +75,36 @@
 
 ### 1.2 Model Status — Know What's Usable Right Now
 
-- [x] Add `ModelStatus` dataclass (`revos/registry/status.py`)
-- [x] Add `revos.check_model(name) -> ModelStatus`
-- [x] `is_installed` logic: check if all `manifest.files` exist in `~/.cache/revos/<name>/`
+- [x] Add `ModelStatus` dataclass (`revospeech/registry/status.py`)
+- [x] Add `revospeech.check_model(name) -> ModelStatus`
+- [x] `is_installed` logic: check if all `manifest.files` exist in `~/.cache/revospeech/<name>/`
 - [x] `status` logic: ready / needs-download / needs-api-key
 
 ### 1.3 Python API — List & Discover
 
-- [x] Add `list_models()` to top-level `revos/__init__.py` with filter params: `task`, `mode`, `language`, `status`, `capability`
+- [x] Add `list_models()` to top-level `revospeech/__init__.py` with filter params: `task`, `mode`, `language`, `status`, `capability`
 - [x] Add `search_models(query: str) -> list[ModelStatus]` — fuzzy search via `difflib.SequenceMatcher`
 - [x] Add `check_model(name: str) -> ModelStatus`
 - [ ] Fuzzy matching: typo-tolerant model name lookup with "did you mean?" suggestions
 
-### 1.4 CLI — `revos models`
+### 1.4 CLI — `revospeech models`
 
-- [x] Rewrite `revos models` with rich table: name, task, mode, status icon, size, language, capabilities
+- [x] Rewrite `revospeech models` with rich table: name, task, mode, status icon, size, language, capabilities
 - [x] Status indicators: ✓ (ready), ↓ (needs download), ✗ (needs API key)
 - [x] Add `--ready`, `--task`, `--mode`, `--status`, `--json` filter flags
-- [x] Add `revos models-info <name>` — detailed single-model view
-- [x] Add `revos search <query>` — fuzzy search across name, tags, description
-- [ ] Add `revos models --download <name>` — download a model without running inference
+- [x] Add `revospeech models-info <name>` — detailed single-model view
+- [x] Add `revospeech search <query>` — fuzzy search across name, tags, description
+- [ ] Add `revospeech models --download <name>` — download a model without running inference
 - [ ] Color output when terminal supports it, plain when piped
 
 ### 1.5 Remote Catalog Improvements
 
-- [x] Cache catalog responses locally (`~/.cache/revos/catalog_cache.json`, TTL: 1 hour)
+- [x] Cache catalog responses locally (`~/.cache/revospeech/catalog_cache.json`, TTL: 1 hour)
 - [x] Repo-aware cache (changing `REVOLAB_CATALOG_REPO` invalidates cache)
 - [x] Add timeout (10s) and retry (3x exponential backoff) to catalog network calls
 - [ ] Show which catalog models are already installed locally
-- [ ] `revos catalog pull <name>` — progress bar with size + ETA
-- [ ] `revos catalog search <query>` — filter by language, task, size, capabilities
+- [ ] `revospeech catalog pull <name>` — progress bar with size + ETA
+- [ ] `revospeech catalog search <query>` — filter by language, task, size, capabilities
 - [ ] Model recommendations: "best for English ASR", "fastest TTS"
 
 ---
@@ -121,13 +121,13 @@
 
 ### 2.2 Version Management
 
-- [x] Use `importlib.metadata.version("revos")` as single source of truth in `__init__.py`
+- [x] Use `importlib.metadata.version("revospeech")` as single source of truth in `__init__.py`
 - [x] Remove hardcoded `"0.1.0"` from `__init__.py`
 - [ ] Add `__dir__` override so lazy imports show in tab-completion
 
 ### 2.3 Error Handling & Exceptions
 
-- [x] Create custom exception hierarchy (`revos/exceptions.py`):
+- [x] Create custom exception hierarchy (`revospeech/exceptions.py`):
   ```
   RevosError (base)
   ├── RevosConfigError       — missing API key, bad config
@@ -158,9 +158,9 @@
 
 - [ ] `ASR()` with no args should "just work" — auto-select a sensible default model
 - [ ] `TTS()` with no args should "just work" — same
-- [ ] First-run experience: detect no models → suggest `revos catalog list`
+- [ ] First-run experience: detect no models → suggest `revospeech catalog list`
 - [ ] Add progress bars for model downloads with size and ETA
-- [ ] Add `revos setup` interactive command
+- [ ] Add `revospeech setup` interactive command
 
 ### 3.2 Python API Ergonomics
 
@@ -173,9 +173,9 @@
 
 ### 3.3 CLI Experience
 
-- [ ] `revos transcribe audio.wav` — zero-config, default model
+- [ ] `revospeech transcribe audio.wav` — zero-config, default model
 - [ ] Better output formatting: `--format text|json|srt|vtt`
-- [ ] `revos info` — show version, device, cache size, API key status
+- [ ] `revospeech info` — show version, device, cache size, API key status
 - [ ] Progress spinners for API calls
 - [ ] `--verbose` / `--quiet` flags
 
@@ -184,7 +184,7 @@
 - [ ] Add `BatchResult` and `BatchReport` dataclasses
 - [ ] Add `asr.transcribe_batch(paths, max_workers=4, on_error="continue") -> BatchReport`
 - [ ] Add `tts.synthesize_batch(texts, max_workers=4, on_error="continue") -> BatchReport`
-- [ ] CLI: `revos transcribe *.wav`, `revos synthesize --file-list inputs.txt`
+- [ ] CLI: `revospeech transcribe *.wav`, `revospeech synthesize --file-list inputs.txt`
 - [ ] Batch report export: `report.save("report.json")`
 
 ### 3.5 Result Objects That Feel Right
@@ -253,7 +253,7 @@
 - [ ] Network errors in downloader
 - [ ] Thread safety tests for registry and usage modules
 - [ ] Base classes (`BaseASR`, `BaseTTS`) directly
-- [ ] `revos.__init__` top-level imports and version
+- [ ] `revospeech.__init__` top-level imports and version
 - [ ] Non-WAV audio formats
 - [ ] Empty text, very long text, CJK text
 
@@ -325,7 +325,7 @@
 
 **CLI discoverability**
 
-- [ ] `revos --help` shows all commands
+- [ ] `revospeech --help` shows all commands
 - [ ] Every CLI error suggests the fix
 
 **Docs Pages**
@@ -367,7 +367,7 @@
 - [ ] Finalize package name and org namespace
 - [ ] Update all references from `khursanirevo` to revolab org
 - [ ] Clean `pyproject.toml` metadata for PyPI
-- [ ] Test install from clean venv: `pip install revos[all]`
+- [ ] Test install from clean venv: `pip install revospeech[all]`
 - [ ] Verify CLI entry point works post-install
 - [ ] Publish to TestPyPI → verify → publish to PyPI
 - [ ] Set up docs site (GitHub Pages or Read the Docs)
@@ -389,13 +389,13 @@
 
 ```python
 # A new user installs and is productive in under 2 minutes:
-pip install revos
-python -c "from revos import TTS; TTS().synthesize('Hello world').save('out.wav')"
+pip install revospeech
+python -c "from revospeech import TTS; TTS().synthesize('Hello world').save('out.wav')"
 
 # They can always see what's available:
-revos models
-revos search "english fast"
-revos models-info zipformer-v2
+revospeech models
+revospeech search "english fast"
+revospeech models-info zipformer-v2
 
 # That's it. The library handles model selection, download, and inference.
 # Power users can: pick specific models, use revolab API, clone voices, extend backends.

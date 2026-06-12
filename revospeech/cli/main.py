@@ -26,8 +26,8 @@ def cli() -> None:
 @click.option("--srt", "as_srt", is_flag=True, help="Output as SRT subtitles")
 def transcribe(model: str, audio_path: str, as_json: bool, as_srt: bool) -> None:
     """Transcribe an audio file to text."""
-    from revos.asr import ASR
-    from revos.exceptions import (
+    from revospeech.asr import ASR
+    from revospeech.exceptions import (
         RevosAudioError,
         RevosConfigError,
         RevosEngineError,
@@ -107,14 +107,14 @@ def synthesize(
     ref_text: str | None,
 ) -> None:
     """Synthesize speech from text."""
-    from revos.exceptions import (
+    from revospeech.exceptions import (
         RevosAudioError,
         RevosConfigError,
         RevosEngineError,
         RevosError,
         RevosModelError,
     )
-    from revos.tts import TTS
+    from revospeech.tts import TTS
 
     if text is None and file is None:
         raise click.UsageError("Either --text or --file must be provided")
@@ -180,7 +180,7 @@ def models(
     as_json: bool,
 ) -> None:
     """List available models."""
-    from revos.registry.status import list_model_statuses
+    from revospeech.registry.status import list_model_statuses
 
     kwargs: dict = {}
     if task:
@@ -244,7 +244,7 @@ def models(
 @click.argument("name")
 def models_info(name: str) -> None:
     """Show detailed info for a model."""
-    from revos.registry.status import check_model
+    from revospeech.registry.status import check_model
 
     try:
         m = check_model(name)
@@ -271,9 +271,9 @@ def models_info(name: str) -> None:
 @click.argument("query")
 def search(query: str) -> None:
     """Search models by name, tag, or language."""
-    import revos
+    import revospeech
 
-    results = revos.search_models(query)
+    results = revospeech.search_models(query)
     if not results:
         click.echo(f"No models matching '{query}'.")
         return
@@ -296,12 +296,12 @@ def info() -> None:
     click.echo(f"Python:          {sys.version.split()[0]}")
 
     # Device
-    from revos.device import auto_detect_device
+    from revospeech.device import auto_detect_device
 
     click.echo(f"Device:          {auto_detect_device()}")
 
     # Models
-    from revos.registry import list_models
+    from revospeech.registry import list_models
 
     click.echo(f"Models loaded:   {len(list_models())}")
 
@@ -310,7 +310,7 @@ def info() -> None:
     click.echo(f"Cache dir:       {cache_dir}")
 
     # Catalog repo
-    from revos.catalog import get_catalog_repo
+    from revospeech.catalog import get_catalog_repo
 
     click.echo(f"Catalog repo:    {get_catalog_repo()}")
 
@@ -333,7 +333,7 @@ def catalog() -> None:
 @click.option("--task", "-t", help="Filter by task type (asr or tts)")
 def catalog_list(task: str | None) -> None:
     """List models available in the remote catalog."""
-    from revos.catalog import get_catalog_repo, list_catalog
+    from revospeech.catalog import get_catalog_repo, list_catalog
 
     click.echo(f"Fetching catalog from {get_catalog_repo()}...")
     try:
@@ -364,7 +364,7 @@ def catalog_list(task: str | None) -> None:
 @click.argument("model_name")
 def catalog_pull(model_name: str) -> None:
     """Pull a model from the catalog and install it locally."""
-    from revos.catalog import get_catalog_repo, pull_model
+    from revospeech.catalog import get_catalog_repo, pull_model
 
     click.echo(f"Pulling '{model_name}' from {get_catalog_repo()}...")
     try:
@@ -374,7 +374,7 @@ def catalog_pull(model_name: str) -> None:
         raise SystemExit(1)
 
     click.echo(f"Installed to {dest}")
-    click.echo(f"Use: from revos.tts import TTS; TTS('{model_name}')")
+    click.echo(f"Use: from revospeech.tts import TTS; TTS('{model_name}')")
 
 
 def _get_version() -> str:

@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from revos.tts.base import _split_text
-from revos.tts.result import Audio
+from revospeech.tts.base import _split_text
+from revospeech.tts.result import Audio
 
 # --- Text splitting ---
 
@@ -141,7 +141,7 @@ def test_audio_duration():
 
 @pytest.fixture(autouse=True)
 def clear_registry():
-    from revos.registry.registry import _models
+    from revospeech.registry.registry import _models
 
     _models.clear()
     yield
@@ -157,12 +157,12 @@ def _make_mock_omnivoice():
     return mock_module, mock_cls, mock_model
 
 
-@patch("revos.tts.revovoice_engine._get_hf_user", return_value=None)
+@patch("revospeech.tts.revovoice_engine._get_hf_user", return_value=None)
 def test_synthesize_long(mock_hf_user):
     """synthesize_long splits text and returns concatenated audio."""
-    from revos.registry.manifest import ModelManifest
-    from revos.registry.registry import register
-    from revos.tts.revovoice_engine import RevoVoiceTTS
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import register
+    from revospeech.tts.revovoice_engine import RevoVoiceTTS
 
     register(
         ModelManifest(
@@ -200,12 +200,12 @@ def test_synthesize_long(mock_hf_user):
     assert mock_model.generate.call_count >= 2
 
 
-@patch("revos.tts.revovoice_engine._get_hf_user", return_value=None)
+@patch("revospeech.tts.revovoice_engine._get_hf_user", return_value=None)
 def test_synthesize_long_saves_to_file(mock_hf_user, tmp_path: Path):
     """synthesize_long saves concatenated audio to file."""
-    from revos.registry.manifest import ModelManifest
-    from revos.registry.registry import register
-    from revos.tts.revovoice_engine import RevoVoiceTTS
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import register
+    from revospeech.tts.revovoice_engine import RevoVoiceTTS
 
     register(
         ModelManifest(
@@ -240,12 +240,12 @@ def test_synthesize_long_saves_to_file(mock_hf_user, tmp_path: Path):
     assert result.duration > 0
 
 
-@patch("revos.tts.revovoice_engine._get_hf_user", return_value=None)
+@patch("revospeech.tts.revovoice_engine._get_hf_user", return_value=None)
 def test_synthesize_long_empty_raises(mock_hf_user):
     """synthesize_long raises on empty text."""
-    from revos.registry.manifest import ModelManifest
-    from revos.registry.registry import register
-    from revos.tts.revovoice_engine import RevoVoiceTTS
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import register
+    from revospeech.tts.revovoice_engine import RevoVoiceTTS
 
     register(
         ModelManifest(

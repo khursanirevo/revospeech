@@ -6,7 +6,7 @@ Usage:
 
 import sys
 
-from revos.asr import ASR
+from revospeech.asr import ASR
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

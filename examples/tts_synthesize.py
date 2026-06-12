@@ -4,7 +4,7 @@ Usage:
     uv run python examples/tts_synthesize.py
 """
 
-from revos.tts import TTS
+from revospeech.tts import TTS
 
 if __name__ == "__main__":
     tts = TTS("revovoice")

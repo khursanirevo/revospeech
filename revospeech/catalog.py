@@ -42,7 +42,7 @@ def get_catalog_repo() -> str:
 
     Checks in order:
       1. REVOS_CATALOG_REPO environment variable
-      2. ~/.config/revos/config.yaml (catalog_repo key)
+      2. ~/.config/revospeech/config.yaml (catalog_repo key)
       3. Default: khursanirevo/revos
 
     Returns:
@@ -241,7 +241,7 @@ def list_catalog(task: str | None = None) -> list[ModelManifest]:
 def pull_model(name: str) -> Path:
     """Pull a model manifest from the catalog and install it locally.
 
-    Downloads the YAML manifest to ~/.config/revos/models/{task}/
+    Downloads the YAML manifest to ~/.config/revospeech/models/{task}/
     and registers it.
 
     Args:
