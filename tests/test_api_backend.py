@@ -278,6 +278,77 @@ def test_get_raw_returns_bytes(monkeypatch):
     client.close()
 
 
+def test_get_raw_401_raises_config_error(monkeypatch):
+    """get_raw HTTP 401 → RevosConfigError."""
+    from revospeech.exceptions import RevosConfigError
+
+    client = _build_client_with_mock_http(monkeypatch)
+    response = client._MockResponse(401)
+    client._client.request = lambda *a, **kw: response
+
+    with pytest.raises(RevosConfigError, match="401"):
+        client.get_raw("/audio/123")
+    client.close()
+
+
+def test_get_raw_403_raises_config_error(monkeypatch):
+    """get_raw HTTP 403 → RevosConfigError with permission hint."""
+    from revospeech.exceptions import RevosConfigError
+
+    client = _build_client_with_mock_http(monkeypatch)
+    response = client._MockResponse(403)
+    client._client.request = lambda *a, **kw: response
+
+    with pytest.raises(RevosConfigError, match="403"):
+        client.get_raw("/audio/123")
+    client.close()
+
+
+def test_get_raw_429_retries_then_raises(monkeypatch):
+    """get_raw HTTP 429 retries, then raises RevosEngineError."""
+    from revospeech.exceptions import RevosEngineError
+
+    client = _build_client_with_mock_http(monkeypatch)
+    client.max_retries = 2
+    response = client._MockResponse(429)
+    client._client.request = lambda *a, **kw: response
+
+    with pytest.raises(RevosEngineError, match="Rate limit"):
+        client.get_raw("/audio/123")
+    client.close()
+
+
+def test_get_raw_5xx_retries_then_raises(monkeypatch):
+    """get_raw HTTP 500 retries, then raises RevosEngineError."""
+    from revospeech.exceptions import RevosEngineError
+
+    client = _build_client_with_mock_http(monkeypatch)
+    client.max_retries = 2
+    response = client._MockResponse(503)
+    client._client.request = lambda *a, **kw: response
+
+    with pytest.raises(RevosEngineError, match="Server error"):
+        client.get_raw("/audio/123")
+    client.close()
+
+
+def test_get_raw_network_error_retries(monkeypatch):
+    """get_raw network errors retry, then raise RevosEngineError."""
+    from revospeech.exceptions import RevosEngineError
+
+    client = _build_client_with_mock_http(monkeypatch)
+    client.max_retries = 2
+
+    def always_fail(*a, **kw):
+        raise client._httpx.HTTPError("network down")
+
+    client._client.request = always_fail
+
+    with pytest.raises(RevosEngineError, match="Network error"):
+        client.get_raw("/audio/123")
+    client.close()
+
+
 def test_request_403_raises_config_error(monkeypatch):
     """HTTP 403 → RevosConfigError with permission suggestion."""
     from revospeech.exceptions import RevosConfigError
