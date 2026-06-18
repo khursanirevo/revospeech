@@ -39,14 +39,46 @@ def _progress_hook(block_num: int, block_size: int, total_size: int) -> None:
 
 
 def _download(url: str, dest: Path) -> None:
-    """Download a file from URL to dest with progress logging."""
+    """Download a file from URL to dest with progress logging.
+
+    Uses tqdm for a progress bar when available; otherwise falls back to the
+    built-in ``_progress_hook`` text progress indicator on stderr.
+    """
     if not url.startswith(("https://", "http://")):
         raise ValueError(
             f"Invalid model URL scheme: {url}. Only https:// and http:// are allowed."
         )
     dest.parent.mkdir(parents=True, exist_ok=True)
     logger.info("Downloading %s -> %s", url, dest)
-    urllib.request.urlretrieve(url, dest, reporthook=_progress_hook)
+
+    # Lazy, optional tqdm import — keeps tqdm as a soft dependency.
+    try:
+        from tqdm import tqdm
+    except ImportError:
+        tqdm = None  # type: ignore[assignment]
+
+    if tqdm is not None:
+        desc = dest.name
+        with tqdm(
+            unit="B",
+            unit_scale=True,
+            desc=desc,
+            leave=False,
+        ) as pbar:
+
+            def _tqdm_reporthook(
+                block_num: int, block_size: int, total_size: int
+            ) -> None:
+                # First call (block_num == 0) carries total_size; set it on the bar.
+                if block_num == 0:
+                    if total_size > 0:
+                        pbar.total = total_size
+                    return
+                pbar.update(block_size)
+
+            urllib.request.urlretrieve(url, dest, reporthook=_tqdm_reporthook)
+    else:
+        urllib.request.urlretrieve(url, dest, reporthook=_progress_hook)
 
 
 def _extract(archive_path: Path, dest_dir: Path) -> None:
