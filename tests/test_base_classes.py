@@ -40,14 +40,17 @@ class _ConcreteASR(BaseASR):
     def transcribe(self, audio_path):  # type: ignore[no-untyped-def]
         from revospeech.asr.result import Transcript
 
-        return Transcript(text="hello", language="en", duration=1.0)
+        return Transcript(text="hello", segments=[], language="en")
 
 
 class _ConcreteTTS(BaseTTS):
     """Minimal concrete TTS engine."""
 
     def synthesize(self, text, output_path=None, **kwargs):  # type: ignore[no-untyped-def]
-        return Audio(samples=np.zeros(100, dtype=np.float32), sample_rate=16000)
+        audio = Audio(samples=np.zeros(100, dtype=np.float32), sample_rate=16000)
+        if output_path is not None:
+            audio.save(output_path)
+        return audio
 
 
 def test_concrete_asr_instantiates():
@@ -209,3 +212,65 @@ def test_synthesize_long_saves_output(tmp_path: Path):
     data, sr = sf.read(str(out))
     assert sr == 16000
     assert len(data) > 0
+
+
+def test_transcribe_batch_happy_path():
+    """transcribe_batch returns a report with all successes."""
+    engine = _ConcreteASR("test")
+    report = engine.transcribe_batch(["a.wav", "b.wav", "c.wav"])
+    assert report.total == 3
+    assert report.succeeded == 3
+    assert report.failed == 0
+    assert len(report.items) == 3
+
+
+def test_transcribe_batch_continues_on_error():
+    """on_error='continue' skips failures and keeps going."""
+    from revospeech.asr.base import BaseASR
+    from revospeech.asr.result import Transcript
+
+    class _FlakyASR(BaseASR):
+        def __init__(self, name, fail_on=None):
+            super().__init__(name)
+            self._fail_on = set(fail_on or [])
+
+        def transcribe(self, audio_path):
+            if audio_path in self._fail_on:
+                raise RuntimeError(f"forced failure on {audio_path}")
+            return Transcript(text="ok", segments=[], language="en")
+
+    engine = _FlakyASR("test", fail_on={"b.wav"})
+    report = engine.transcribe_batch(["a.wav", "b.wav", "c.wav"])
+    assert report.total == 3
+    assert report.succeeded == 2
+    assert report.failed == 1
+    assert report.errors[0].input == "b.wav"
+
+
+def test_transcribe_batch_raises_on_error_when_configured():
+    """on_error='raise' fails fast on first error."""
+    import pytest
+
+    from revospeech.asr.base import BaseASR
+    from revospeech.asr.result import Transcript
+
+    class _FlakyASR(BaseASR):
+        def transcribe(self, audio_path):
+            if audio_path == "b.wav":
+                raise RuntimeError("forced failure")
+            return Transcript(text="ok", segments=[], language="en")
+
+    engine = _FlakyASR("test")
+    with pytest.raises(RuntimeError, match="Batch transcription failed"):
+        engine.transcribe_batch(["a.wav", "b.wav", "c.wav"], on_error="raise")
+
+
+def test_synthesize_batch_happy_path(tmp_path):
+    """synthesize_batch returns a report and writes audio files."""
+    engine = _ConcreteTTS("test")
+    out_dir = tmp_path / "out"
+    report = engine.synthesize_batch(["hello", "world"], output_dir=str(out_dir))
+    assert report.total == 2
+    assert report.succeeded == 2
+    assert (out_dir / "audio_0.wav").exists()
+    assert (out_dir / "audio_1.wav").exists()
