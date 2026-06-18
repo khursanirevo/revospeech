@@ -1645,3 +1645,179 @@ def test_transcribe_revos_config_error(mock_asr_cls, runner: CliRunner, sample_w
     assert result.exit_code == 1
     assert "Configuration error" in result.output
     assert "set-api-key" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Remaining batch error paths + setup wizard interactive flows
+# ---------------------------------------------------------------------------
+@patch("revospeech.asr.ASR")
+def test_transcribe_batch_revos_config_error(
+    mock_asr_cls, runner: CliRunner, sample_wav
+):
+    """Batch transcribe surfaces RevosConfigError."""
+    from revospeech.exceptions import RevosConfigError
+
+    mock_asr_cls.side_effect = RevosConfigError(
+        "Missing API key", suggestion="Run 'revos config set-api-key'"
+    )
+
+    result = runner.invoke(cli, ["transcribe", "-m", "test", sample_wav, sample_wav])
+    assert result.exit_code == 1
+    assert "Configuration error" in result.output
+
+
+@patch("revospeech.tts.TTS")
+def test_synthesize_file_list_revos_config_error(mock_tts_cls, runner: CliRunner):
+    """--file-list surfaces RevosConfigError."""
+    from revospeech.exceptions import RevosConfigError
+
+    mock_tts_cls.side_effect = RevosConfigError(
+        "Missing API key", suggestion="Run 'revos config set-api-key'"
+    )
+
+    with runner.isolated_filesystem():
+        with open("list.txt", "w") as f:
+            f.write("hello\n")
+        result = runner.invoke(
+            cli,
+            ["synthesize", "-m", "test", "--file-list", "list.txt", "-o", "out/x.wav"],
+        )
+    assert result.exit_code == 1
+    assert "Configuration error" in result.output
+
+
+def test_setup_install_flow_success(runner: CliRunner, monkeypatch):
+    """setup wizard install path downloads a model when user confirms."""
+    from revospeech.registry.status import ModelStatus
+
+    monkeypatch.setattr(
+        "revospeech.registry.status.list_model_statuses",
+        lambda task=None: [
+            ModelStatus(
+                name="alpha",
+                task="asr",
+                mode="local",
+                status="needs-download",
+                installed=False,
+                size_mb=10.0,
+                capabilities=[],
+                languages=["en"],
+            )
+        ],
+    )
+
+    captured = []
+    monkeypatch.setattr(
+        "revospeech.registry.downloader.ensure_model",
+        lambda manifest: captured.append(manifest.name),
+    )
+    # Fake registry: name "alpha" resolves to a dummy manifest.
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models
+
+    saved_models = dict(_models)
+    _models.clear()
+    _models[("alpha", "asr")] = ModelManifest(
+        name="alpha",
+        task="asr",
+        backend="sherpa-onnx",
+        model_type="transducer",
+        model_url="http://example.com/m.tar.bz2",
+        sample_rate=16000,
+        language="en",
+        description="",
+        files={},
+    )
+
+    try:
+        result = runner.invoke(cli, ["setup"], input="asr\ny\nalpha\nn\n")
+        assert result.exit_code == 0
+        assert "Downloading alpha" in result.output
+        assert "Done" in result.output
+        assert captured == ["alpha"]
+    finally:
+        _models.clear()
+        _models.update(saved_models)
+
+
+def test_setup_install_unknown_model(runner: CliRunner, monkeypatch):
+    """setup wizard install of unknown model prints not-found hint."""
+    from revospeech.registry.registry import _models
+
+    saved_models = dict(_models)
+    _models.clear()
+
+    try:
+        result = runner.invoke(cli, ["setup"], input="asr\ny\nghost\nn\n")
+        assert result.exit_code == 0
+        assert "not found" in result.output
+    finally:
+        _models.clear()
+        _models.update(saved_models)
+
+
+def test_setup_install_runtime_error_is_caught(runner: CliRunner, monkeypatch):
+    """setup wizard install errors are surfaced but don't crash."""
+
+    def boom(_manifest):
+        raise RuntimeError("disk full")
+
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models
+
+    saved_models = dict(_models)
+    _models.clear()
+    _models[("alpha", "asr")] = ModelManifest(
+        name="alpha",
+        task="asr",
+        backend="sherpa-onnx",
+        model_type="transducer",
+        model_url="http://example.com/m.tar.bz2",
+        sample_rate=16000,
+        language="en",
+        description="",
+        files={},
+    )
+    monkeypatch.setattr("revospeech.registry.downloader.ensure_model", boom)
+
+    try:
+        result = runner.invoke(cli, ["setup"], input="asr\ny\nalpha\nn\n")
+        assert result.exit_code == 0
+        assert "Error" in result.output
+        assert "disk full" in result.output
+    finally:
+        _models.clear()
+        _models.update(saved_models)
+
+
+def test_setup_set_api_key_flow(runner: CliRunner, monkeypatch):
+    """setup wizard API key step saves when user confirms."""
+    saved_keys = []
+    monkeypatch.setattr(
+        "revospeech.config.set_api_key", lambda key: saved_keys.append(key)
+    )
+    monkeypatch.setattr(
+        "revospeech.registry.status.list_model_statuses", lambda task=None: []
+    )
+
+    result = runner.invoke(cli, ["setup"], input="asr\nn\ny\nrv-newkey12345\n")
+    assert result.exit_code == 0
+    assert saved_keys == ["rv-newkey12345"]
+    assert "API key saved" in result.output
+
+
+def test_catalog_search_filter_by_task(runner: CliRunner, monkeypatch):
+    """catalog search --task filters out non-matching tasks."""
+    monkeypatch.setattr(
+        "revospeech.catalog.list_catalog",
+        lambda: [
+            _fake_catalog_manifest(name="alpha-asr", task="asr"),
+            _fake_catalog_manifest(name="beta-tts", task="tts"),
+        ],
+    )
+
+    # Query "en" matches the default tag "english" and language "en".
+    result = runner.invoke(cli, ["catalog", "search", "en", "--task", "tts"])
+    assert result.exit_code == 0
+    assert "beta-tts" in result.output
+    assert "alpha-asr" not in result.output
