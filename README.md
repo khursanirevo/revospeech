@@ -293,6 +293,63 @@ asr = ASR('zipformer-v2', auto_download=False)
 
 > **For team members adding models:** If your model is gated, set `hf_private: true` in the YAML manifest. This tells RevoSpeech to check HF authentication before downloading.
 
+## Local vs Cloud API
+
+RevoSpeech supports two execution modes for both ASR and TTS:
+
+| Aspect | Local | Cloud API |
+|--------|-------|-----------|
+| **Setup** | `pip install revospeech` + download model weights | `pip install revospeech` + set API key |
+| **Cost** | Free (open models) | Per-use pricing |
+| **Latency** | Depends on hardware (50ms–2s typical) | Network round-trip (~100–500ms) |
+| **Privacy** | Audio never leaves your machine | Audio sent to revolab cloud |
+| **Quality** | Limited by open models | State-of-the-art revolab models |
+| **Languages** | Depends on downloaded model | 100+ languages, regularly updated |
+| **Voice cloning** | Limited (depends on model) | High-quality zero-shot cloning |
+| **Offline** | Yes | No (requires internet) |
+| **GPU required** | Optional (CPU works, slower) | No (cloud handles compute) |
+
+### Using Local Models
+
+```python
+from revospeech import ASR, TTS
+
+# Local ASR — model auto-downloads on first use
+asr = ASR("zipformer-v2")
+result = asr.transcribe("audio.wav")
+
+# Local TTS — gated models require HF login first
+tts = TTS("revovoice")
+audio = tts.synthesize("Hello, world!")
+```
+
+### Using revolab Cloud API
+
+```bash
+# Set API key once
+revospeech config set-api-key
+```
+
+```python
+from revospeech import ASR, TTS
+
+# Same API, just a different model name
+asr = ASR("revolab-asr-v1")  # uses cloud automatically
+result = asr.transcribe("audio.wav")
+
+tts = TTS("revolab-tts-v1")
+audio = tts.synthesize("Hello, world!")
+```
+
+> **Note:** revolab API backends ship in a future release. The factory pattern is in place — once `revolab-asr-v1` and `revolab-tts-v1` manifests are registered, the same user code will work without changes.
+
+### Choosing Between Modes
+
+- **Pick Local** if: you need offline use, have privacy constraints, want zero per-use cost, or have a capable GPU
+- **Pick API** if: you want state-of-the-art quality, don't want to manage model weights, need many languages, or have limited local hardware
+
+Both modes use the same Python API. The only difference is the model name you pass to `ASR()` or `TTS()`.
+
 ## Configuration
 
 ### API Keys
