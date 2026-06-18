@@ -168,7 +168,7 @@ def test_models_command(runner: CliRunner):
             model_url="",
             sample_rate=16000,
             language="en",
-            description="",
+            description="Test ASR model",
         )
     )
 
@@ -195,3 +195,43 @@ def test_info_command(runner: CliRunner):
     assert result.exit_code == 0
     assert "Python" in result.output
     assert "Cache dir" in result.output
+
+
+def test_search_command_with_results(runner: CliRunner):
+    """revos search <query> shows matching models."""
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register
+
+    _models.clear()
+    register(
+        ModelManifest(
+            name="zipformer-v2",
+            task="asr",
+            backend="sherpa-onnx",
+            model_type="transducer",
+            model_url="",
+            sample_rate=16000,
+            language="en",
+            description="Test ASR model",
+            files={},
+        )
+    )
+    try:
+        result = runner.invoke(cli, ["search", "zip"])
+        assert result.exit_code == 0
+        assert "zipformer-v2" in result.output
+    finally:
+        _models.clear()
+
+
+def test_search_command_no_results(runner: CliRunner):
+    """revos search with no matches shows suggestion."""
+    from revospeech.registry.registry import _models
+
+    _models.clear()
+    try:
+        result = runner.invoke(cli, ["search", "nonexistent"])
+        assert result.exit_code == 0
+        assert "No models matching" in result.output
+    finally:
+        _models.clear()
