@@ -215,7 +215,7 @@
 
 ### 4.2 TTS Models
 
-- [ ] Add VITS-based model (lightweight, CPU-friendly)
+- [x] Add VITS-based model (lightweight, CPU-friendly) — `vits-ms` Malay multi-speaker via `revospeech/tts/vits_engine.py`
 - [ ] Add Kokoro TTS model option (if license permits)
 - [ ] Add language-specific models for major languages
 
@@ -339,7 +339,7 @@
 - [x] Local vs API guide — README + `docs/index.md`
 - [ ] Model catalog with benchmarks
 - [x] Configuration guide — `docs/configuration.md`
-- [ ] Extension guide
+- [x] Extension guide — `docs/extension.md`
 - [x] CLI reference — `docs/cli.md` + `docs/api/cli.md`
 - [x] Troubleshooting — `docs/troubleshooting.md`
 
