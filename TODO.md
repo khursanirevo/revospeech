@@ -44,11 +44,13 @@
 
 ### 0.4 revolab Cloud API Backend
 
-- [ ] Create `revospeech/asr/revolab_engine.py` — revolab's ASR API backend (**BLOCKED** — waiting on API contract)
-- [ ] Create `revospeech/tts/revolab_engine.py` — revolab's TTS API backend (**BLOCKED** — waiting on API contract)
-- [ ] Handle auth, retries, rate limiting, streaming responses (**BLOCKED** — waiting on API contract)
+> Skeleton landed (commits f49b43e, 9febd97). Real field mappings remain BLOCKED on the API contract.
+
+- [x] Create `revospeech/asr/revolab_engine.py` — skeleton with response parser ready for real fields
+- [x] Create `revospeech/tts/revolab_engine.py` — skeleton with base64 + URL audio fetch
+- [x] Handle auth, retries, rate limiting, streaming responses — `RevolabClient` in `revospeech/http_client.py` (httpx)
 - [ ] Map API responses to existing `Transcript` and `Audio` result types (**BLOCKED** — waiting on API contract)
-- [ ] Add `httpx` as optional dependency (`revospeech[api]`) (**BLOCKED** — waiting on API contract)
+- [x] Add `httpx` as optional dependency (`revospeech[api]`)
 
 ### 0.5 ASR/TTS Factory Updates
 
@@ -262,10 +264,10 @@
 
 ### 6.2 API Backend Tests
 
-- [ ] Mock revolab API responses (**BLOCKED** — waiting on API contract)
+- [x] Mock revolab API responses (skeleton — `tests/test_api_backend.py`, real fields need contract)
 - [x] Test API key resolution order (constructor > env var > config)
 - [x] Test missing API key → clear error message
-- [ ] Test rate limiting / retry behavior (**BLOCKED** — waiting on API contract)
+- [x] Test rate limiting / retry behavior (skeleton — `RevolabClient` retry loop tested)
 - [ ] Test malformed API responses (**BLOCKED** — waiting on API contract)
 - [ ] Test streaming TTS response handling (**BLOCKED** — waiting on API contract)
 
@@ -318,35 +320,35 @@
 **Layer 2 — Docstrings (15% of users)**
 
 - [ ] Every public method docstring starts with runnable example
-- [ ] Docstring examples tested with `pytest-doctest` or `xdoctest`
+- [x] Docstring examples tested with `pytest-doctest` or `xdoctest` — `tests/test_docstring_examples.py` + xdoctest dev dep
 
 **Layer 3 — Full API reference (5% of users)**
 
-- [ ] Set up mkdocs-material + mkdocstrings
-- [ ] One page per class
+- [x] Set up mkdocs-material + mkdocstrings
+- [x] One page per class — split into `docs/api/{asr,tts,registry,cli,results}.md`
 - [ ] Cross-linked "See also" references
 
 **CLI discoverability**
 
-- [ ] `revospeech --help` shows all commands
-- [ ] Every CLI error suggests the fix
+- [x] `revospeech --help` shows all commands
+- [x] Every CLI error suggests the fix — `_format_error()` surfaces `.suggestion`
 
 **Docs Pages**
 
-- [ ] Quickstart — 5 lines, working in under 60 seconds
-- [ ] Local vs API guide
+- [x] Quickstart — 5 lines, working in under 60 seconds
+- [x] Local vs API guide — README + `docs/index.md`
 - [ ] Model catalog with benchmarks
-- [ ] Configuration guide
+- [x] Configuration guide — `docs/configuration.md`
 - [ ] Extension guide
-- [ ] CLI reference
-- [ ] Troubleshooting
+- [x] CLI reference — `docs/cli.md` + `docs/api/cli.md`
+- [x] Troubleshooting — `docs/troubleshooting.md`
 
 ### 7.2 Examples (Numbered, Progressive)
 
-- [ ] `examples/09_custom_backend.py`
-- [ ] `examples/10_streaming_tts.py`
-- [ ] `examples/11_batch_directory.py`
-- [ ] `examples/12_cli_only.sh`
+- [x] `examples/09_custom_backend.py`
+- [x] `examples/10_streaming_tts.py`
+- [x] `examples/11_batch_directory.py`
+- [x] `examples/12_cli_only.sh`
 
 ### 7.3 Community Files
 
