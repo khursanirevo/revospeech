@@ -102,9 +102,7 @@ def test_compute_status_api_mode_with_key(monkeypatch):
 
 def test_compute_status_api_mode_no_key(monkeypatch):
     """API manifest + no key → status='needs-api-key'."""
-    monkeypatch.setattr(
-        "revospeech.registry.status.get_api_key", lambda *a, **kw: None
-    )
+    monkeypatch.setattr("revospeech.registry.status.get_api_key", lambda *a, **kw: None)
     manifest = _make_manifest(mode="api", backend="revolab")
     ms = _compute_status(manifest)
     assert ms.status == "needs-api-key"

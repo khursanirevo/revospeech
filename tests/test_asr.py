@@ -165,9 +165,7 @@ def _register_sherpa_asr(name="test-asr", model_url=""):
 def test_asr_with_api_key_persists(monkeypatch):
     """Passing api_key to ASR() persists it via set_api_key."""
     captured = []
-    monkeypatch.setattr(
-        "revospeech.asr.set_api_key", lambda key: captured.append(key)
-    )
+    monkeypatch.setattr("revospeech.asr.set_api_key", lambda key: captured.append(key))
     _register_sherpa_asr()
     from revospeech.asr import ASR
 

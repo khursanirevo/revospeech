@@ -261,9 +261,7 @@ def test_tts_unsupported_backend():
 def test_tts_with_api_key_persists(monkeypatch):
     """Passing api_key to TTS() should persist it via set_api_key."""
     captured = []
-    monkeypatch.setattr(
-        "revospeech.tts.set_api_key", lambda key: captured.append(key)
-    )
+    monkeypatch.setattr("revospeech.tts.set_api_key", lambda key: captured.append(key))
     _register_vits()
     from revospeech.tts import TTS
 
@@ -412,9 +410,7 @@ def test_tts_api_mode_no_key_raises_config_error(monkeypatch):
             files={},
         )
     )
-    monkeypatch.setattr(
-        "revospeech.config.get_api_key", lambda *a, **kw: None
-    )
+    monkeypatch.setattr("revospeech.config.get_api_key", lambda *a, **kw: None)
 
     from revospeech.exceptions import RevosConfigError
     from revospeech.tts import TTS
