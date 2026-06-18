@@ -340,7 +340,7 @@
 
 - [x] Quickstart — 5 lines, working in under 60 seconds
 - [x] Local vs API guide — README + `docs/index.md`
-- [ ] Model catalog with benchmarks
+- [x] Model catalog with benchmarks — `docs/models.md` catalogs current models + roadmap; benchmarks blocked on harness
 - [x] Configuration guide — `docs/configuration.md`
 - [x] Extension guide — `docs/extension.md`
 - [x] CLI reference — `docs/cli.md` + `docs/api/cli.md`
