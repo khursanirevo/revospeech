@@ -46,9 +46,9 @@
 
 - [ ] Create `revospeech/asr/revolab_engine.py` — revolab's ASR API backend (**BLOCKED** — waiting on API contract)
 - [ ] Create `revospeech/tts/revolab_engine.py` — revolab's TTS API backend (**BLOCKED** — waiting on API contract)
-- [ ] Handle auth, retries, rate limiting, streaming responses
-- [ ] Map API responses to existing `Transcript` and `Audio` result types
-- [ ] Add `httpx` as optional dependency (`revospeech[api]`)
+- [ ] Handle auth, retries, rate limiting, streaming responses (**BLOCKED** — waiting on API contract)
+- [ ] Map API responses to existing `Transcript` and `Audio` result types (**BLOCKED** — waiting on API contract)
+- [ ] Add `httpx` as optional dependency (`revospeech[api]`) (**BLOCKED** — waiting on API contract)
 
 ### 0.5 ASR/TTS Factory Updates
 
@@ -102,10 +102,10 @@
 - [x] Cache catalog responses locally (`~/.cache/revospeech/catalog_cache.json`, TTL: 1 hour)
 - [x] Repo-aware cache (changing `REVOLAB_CATALOG_REPO` invalidates cache)
 - [x] Add timeout (10s) and retry (3x exponential backoff) to catalog network calls
-- [ ] Show which catalog models are already installed locally
+- [x] Show which catalog models are already installed locally
 - [x] `revospeech catalog pull <name>` — progress bar with size + ETA
 - [x] `revospeech catalog search <query>` — filter by language, task, size, capabilities
-- [ ] Model recommendations: "best for English ASR", "fastest TTS"
+- [x] Model recommendations: "best for English ASR", "fastest TTS"
 
 ---
 
@@ -117,7 +117,7 @@
 - [x] Unify build tools — use `uv build` everywhere
 - [x] Add `ruff format --check` to CI
 - [x] Add coverage threshold (70% in CI)
-- [ ] Add `mypy` or `pyright` type check step to CI
+- [x] Add `mypy` or `pyright` type check step to CI
 
 ### 2.2 Version Management
 
@@ -147,7 +147,7 @@
 ### 2.5 Cleanup
 
 - [x] Fix `hf_user` type inconsistency in `usage.py` (`str | None`)
-- [ ] Remove dead test fixtures (`mock_recognizer`, `mock_tts_model` in conftest.py)
+- [x] Remove dead test fixtures (`mock_recognizer`, `mock_tts_model` in conftest.py)
 - [x] Update catalog default repo from `khursanirevo/revospeech` to revolab org
 
 ---
@@ -160,7 +160,7 @@
 - [x] `TTS()` with no args should "just work" — same
 - [x] First-run experience: detect no models → suggest `revospeech catalog list`
 - [x] Add progress bars for model downloads with size and ETA
-- [ ] Add `revospeech setup` interactive command
+- [x] Add `revospeech setup` interactive command
 
 ### 3.2 Python API Ergonomics
 
@@ -168,7 +168,7 @@
 - [x] `api_key` parameter on constructors
 - [x] Auto-download models on first use with progress bar
 - [x] Accept `Path` and `str` interchangeably for all file arguments
-- [ ] Accept file-like objects (BytesIO) for in-memory audio
+- [x] Accept file-like objects (BytesIO) for in-memory audio
 - [x] `synthesize_long()` improvements: auto-detect long text, configurable chunk size
 
 ### 3.3 CLI Experience
@@ -176,7 +176,7 @@
 - [x] `revospeech transcribe audio.wav` — zero-config, default model
 - [x] Better output formatting: `--format text|json|srt|vtt`
 - [x] `revospeech info` — show version, device, cache size, API key status
-- [ ] Progress spinners for API calls
+- [ ] Progress spinners for API calls (**BLOCKED** — waiting on API contract)
 - [x] `--verbose` / `--quiet` flags
 
 ### 3.4 Batch Processing
@@ -184,7 +184,7 @@
 - [x] Add `BatchResult` and `BatchReport` dataclasses
 - [x] Add `asr.transcribe_batch(paths, max_workers=4, on_error="continue") -> BatchReport`
 - [x] Add `tts.synthesize_batch(texts, max_workers=4, on_error="continue") -> BatchReport`
-- [ ] CLI: `revospeech transcribe *.wav`, `revospeech synthesize --file-list inputs.txt`
+- [x] CLI: `revospeech transcribe *.wav`, `revospeech synthesize --file-list inputs.txt`
 - [x] Batch report export: `report.save("report.json")`
 
 ### 3.5 Result Objects That Feel Right
@@ -196,9 +196,9 @@
 
 ### 3.6 Type Hints & Editor Support
 
-- [ ] Ensure all public APIs have complete type hints
-- [ ] `py.typed` marker exists — verify with `mypy`/`pyright`
-- [ ] Add `overload` signatures for common call patterns
+- [x] Ensure all public APIs have complete type hints
+- [x] `py.typed` marker exists — verify with `mypy`/`pyright`
+- [x] Add `overload` signatures for common call patterns
 
 ---
 
@@ -220,6 +220,9 @@
 ---
 
 ## Phase 5 — revolab API Backend Features
+
+> **Note:** All items in Phase 5 are (**BLOCKED** — waiting on API contract)
+> until the revolab cloud API spec is finalized.
 
 ### 5.1 Core API Client
 
@@ -249,51 +252,51 @@
 
 ### 6.1 Cover Current Gaps
 
-- [ ] Corrupt/invalid audio input
-- [ ] Network errors in downloader
-- [ ] Thread safety tests for registry and usage modules
-- [ ] Base classes (`BaseASR`, `BaseTTS`) directly
-- [ ] `revospeech.__init__` top-level imports and version
-- [ ] Non-WAV audio formats
-- [ ] Empty text, very long text, CJK text
+- [x] Corrupt/invalid audio input
+- [x] Network errors in downloader
+- [x] Thread safety tests for registry and usage modules
+- [x] Base classes (`BaseASR`, `BaseTTS`) directly
+- [x] `revospeech.__init__` top-level imports and version
+- [x] Non-WAV audio formats
+- [x] Empty text, very long text, CJK text
 
 ### 6.2 API Backend Tests
 
-- [ ] Mock revolab API responses
-- [ ] Test API key resolution order (constructor > env var > config)
-- [ ] Test missing API key → clear error message
-- [ ] Test rate limiting / retry behavior
-- [ ] Test malformed API responses
-- [ ] Test streaming TTS response handling
+- [ ] Mock revolab API responses (**BLOCKED** — waiting on API contract)
+- [x] Test API key resolution order (constructor > env var > config)
+- [x] Test missing API key → clear error message
+- [ ] Test rate limiting / retry behavior (**BLOCKED** — waiting on API contract)
+- [ ] Test malformed API responses (**BLOCKED** — waiting on API contract)
+- [ ] Test streaming TTS response handling (**BLOCKED** — waiting on API contract)
 
 ### 6.3 Discovery & Registry Tests
 
-- [ ] `list_models()` with all filter combinations
-- [ ] `search_models()` fuzzy matching — typos, partial names, tags
-- [ ] `check_model()` for each status
-- [ ] Manifest validation — missing required fields, invalid types
+- [x] `list_models()` with all filter combinations
+- [x] `search_models()` fuzzy matching — typos, partial names, tags
+- [x] `check_model()` for each status
+- [x] Manifest validation — missing required fields, invalid types
 
 ### 6.4 Integration Tests
 
-- [ ] Full flow: `catalog pull → local ASR/TTS → result`
-- [ ] Full flow: `API key → API ASR/TTS → result`
-- [ ] Hybrid: local ASR → API TTS
+- [x] Full flow: `catalog pull → local ASR/TTS → result`
+- [ ] Full flow: `API key → API ASR/TTS → result` (**BLOCKED** — waiting on API contract)
+- [ ] Hybrid: local ASR → API TTS (**BLOCKED** — waiting on API contract)
 
 ### 6.5 Round-Trip Tests (TTS → ASR Self-Validation)
 
-- [ ] Add `tests/test_roundtrip.py` with round-trip tests
-- [ ] `fuzzy_match(actual, expected, threshold=0.8)` helper
-- [ ] Test cases: simple English, longer text, multiple languages, voice cloning
-- [ ] Local round-trip, API round-trip, hybrid round-trip
-- [ ] Add `pytest.mark.roundtrip` marker
-- [ ] Round-trip tests as quality benchmarks over time
+- [x] Add `tests/test_roundtrip.py` with round-trip tests
+- [x] `fuzzy_match(actual, expected, threshold=0.8)` helper
+- [x] Test cases: simple English, longer text, multiple languages, voice cloning
+- [ ] Local round-trip, API round-trip, hybrid round-trip (**BLOCKED** — waiting on API contract)
+- [x] Add `pytest.mark.roundtrip` marker
+- [x] Round-trip tests as quality benchmarks over time
 
 ### 6.6 Extension Protocol Tests
 
-- [ ] Register a custom backend via entry point
-- [ ] Subclass `BaseASR` → verify factory dispatches
-- [ ] Subclass `BaseTTS` → verify factory dispatches
-- [ ] Invalid backend (missing abstract methods) → clear error
+- [ ] Register a custom backend via entry point (**BLOCKED** — entry-point auto-discovery deferred to post-MVP)
+- [x] Subclass `BaseASR` → verify factory dispatches
+- [x] Subclass `BaseTTS` → verify factory dispatches
+- [x] Invalid backend (missing abstract methods) → clear error
 
 ---
 
