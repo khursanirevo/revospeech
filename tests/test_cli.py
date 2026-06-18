@@ -405,3 +405,53 @@ def test_synthesize_revos_config_error(mock_tts_cls, runner: CliRunner):
     assert result.exit_code == 1
     assert "Configuration error" in result.output
     assert "set-api-key" in result.output
+
+
+# ---------------------------------------------------------------------------
+# CLI group: --verbose / --quiet log-level flags
+# ---------------------------------------------------------------------------
+def test_cli_verbose_flag_sets_debug_level(runner: CliRunner):
+    """--verbose sets revospeech logger to DEBUG."""
+    import logging
+
+    logger = logging.getLogger("revospeech")
+    original = logger.level
+    try:
+        runner.invoke(cli, ["-v", "info"])
+        assert logger.level == logging.DEBUG
+    finally:
+        logger.setLevel(original)
+
+
+def test_cli_quiet_flag_sets_warning_level(runner: CliRunner):
+    """--quiet sets revospeech logger to WARNING."""
+    import logging
+
+    logger = logging.getLogger("revospeech")
+    original = logger.level
+    try:
+        runner.invoke(cli, ["-q", "info"])
+        assert logger.level == logging.WARNING
+    finally:
+        logger.setLevel(original)
+
+
+# ---------------------------------------------------------------------------
+# Color helpers — _status_text and _installed_status_text
+# ---------------------------------------------------------------------------
+def test_status_text_no_color_returns_plain():
+    """Without color, _status_text returns plain '<icon> <status>'."""
+    from revospeech.cli.main import _status_text
+
+    assert _status_text("ready") == "✓ ready"
+    assert _status_text("needs-download") == "↓ needs-download"
+    assert _status_text("needs-api-key") == "✗ needs-api-key"
+    assert _status_text("unknown") == "? unknown"
+
+
+def test_installed_status_text_no_color():
+    """Without color, _installed_status_text returns plain text."""
+    from revospeech.cli.main import _installed_status_text
+
+    assert _installed_status_text(True) == "✓ installed"
+    assert _installed_status_text(False) == "↓ not installed"
