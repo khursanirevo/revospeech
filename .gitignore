@@ -17,6 +17,9 @@ venv/
 htmlcov/
 .coverage
 
+# Docs build output (mkdocs)
+site/
+
 # IDE
 .vscode/
 .idea/
