@@ -94,7 +94,7 @@ class Transcript:
     def __repr__(self) -> str:
         preview = self.text[:40]
         return (
-            f"Transcript(text=\"{preview}...\", duration={self.duration:.1f}s, "
+            f'Transcript(text="{preview}...", duration={self.duration:.1f}s, '
             f"segments={len(self.segments)})"
         )
 

@@ -252,19 +252,14 @@ class BaseTTS(ABC):
                     out_path = None
                 audio = self.synthesize(text, out_path, **kwargs)
                 elapsed = time.perf_counter() - t0
-                return idx, BatchResult(
-                    input=text, result=audio, duration=elapsed
-                )
+                return idx, BatchResult(input=text, result=audio, duration=elapsed)
             except Exception as e:
                 elapsed = time.perf_counter() - t0
-                return idx, BatchResult(
-                    input=text, error=str(e), duration=elapsed
-                )
+                return idx, BatchResult(input=text, error=str(e), duration=elapsed)
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
-                executor.submit(_process, i, text): i
-                for i, text in enumerate(texts)
+                executor.submit(_process, i, text): i for i, text in enumerate(texts)
             }
 
             for future in as_completed(futures):
