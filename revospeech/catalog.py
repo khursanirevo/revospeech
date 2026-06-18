@@ -20,6 +20,7 @@ from pathlib import Path
 
 from .config import load_config
 from .registry.manifest import ModelManifest, load_manifest
+from .registry.status import check_model
 
 logger = logging.getLogger(__name__)
 
@@ -272,7 +273,7 @@ def pull_model(name: str) -> Path:
         except Exception:
             continue
 
-    if target_file is None:
+    if target_file is None or target_manifest is None:
         raise KeyError(
             f"Model '{name}' not found in catalog "
             f"'{repo}'. "
@@ -295,3 +296,53 @@ def pull_model(name: str) -> Path:
 
     logger.info("Pulled model '%s' to %s", name, dest_path)
     return dest_path
+
+
+def catalog_installed_status() -> dict[str, bool]:
+    """Return {model_name: is_installed} for all catalog models.
+
+    Uses :func:`revospeech.registry.status.check_model` to determine
+    whether each catalog model is currently installed and ready.
+    Models that raise ``KeyError`` (not registered locally) are
+    reported as ``False``.
+    """
+    installed: dict[str, bool] = {}
+    for model in list_catalog():
+        try:
+            status = check_model(model.name)
+            installed[model.name] = status.status == "ready"
+        except KeyError:
+            installed[model.name] = False
+    return installed
+
+
+def recommend_models(
+    task: str | None = None, language: str | None = None
+) -> list[ModelManifest]:
+    """Recommend top models for the given task and language.
+
+    Sorted by size (smaller = faster) and filtered by task/language.
+    Returns top 3.
+
+    Args:
+        task: Optional filter by task type ("asr" or "tts").
+        language: Optional filter by language code (e.g. "en", "fr").
+            A model matches if ``language`` is in ``model.languages`` or
+            equals ``model.language``.
+
+    Returns:
+        Up to 3 :class:`ModelManifest` instances sorted by ``size_mb``
+        ascending (smaller first), then alphabetically by name.
+    """
+    models = list_catalog(task=task)
+    if language:
+        language_lower = language.lower()
+        models = [
+            m
+            for m in models
+            if language_lower in [lang.lower() for lang in (m.languages or [])]
+            or (m.language or "").lower() == language_lower
+        ]
+    # Sort by size_mb ascending (None/0 last), then alphabetically by name.
+    models.sort(key=lambda m: (m.size_mb <= 0, m.size_mb, m.name))
+    return models[:3]
