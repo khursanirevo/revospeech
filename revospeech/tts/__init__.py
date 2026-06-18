@@ -10,19 +10,26 @@ Usage:
 
 from __future__ import annotations
 
+import logging
+
 from revospeech.config import set_api_key
 from revospeech.exceptions import RevosModelError
 from revospeech.registry import get
-from revospeech.registry.status import list_model_statuses, suggest_models
+from revospeech.registry.downloader import ensure_model
+from revospeech.registry.status import check_model, list_model_statuses, suggest_models
 
 from .base import BaseTTS
 from .result import Audio
+
+logger = logging.getLogger(__name__)
 
 
 def TTS(
     model_name: str | None = None,
     device: str = "auto",
     api_key: str | None = None,
+    *,
+    auto_download: bool = True,
 ) -> BaseTTS:
     """Create a TTS engine for the given model.
 
@@ -33,6 +40,8 @@ def TTS(
             If None, auto-selects the first ready local model.
         device: Compute device — "auto", "cpu", or "cuda".
         api_key: If provided, persists it via ``set_api_key`` before loading.
+        auto_download: If True (default), automatically download local models
+            that are not yet cached before constructing the engine.
 
     Returns:
         A BaseTTS instance ready for synthesis.
@@ -48,12 +57,24 @@ def TTS(
     if model_name is None:
         ready = list_model_statuses(task="tts", mode="local", status="ready")
         if not ready:
+            available = list_model_statuses(task="tts")
+            if not available:
+                suggestion = (
+                    "No TTS models registered. Browse the catalog: "
+                    "'revospeech catalog list'"
+                    " then 'revospeech catalog pull <name>'."
+                )
+            else:
+                names = [m.name for m in available[:5]]
+                suggestion = (
+                    f"Download a model first with "
+                    f"'revospeech models --download <name>'. "
+                    f"Available: {', '.join(names)}"
+                    f"{' ...' if len(available) > 5 else ''}"
+                )
             raise RevosModelError(
                 "No TTS model specified and no ready local models found.",
-                suggestion=(
-                    "Download a model first: revospeech models download <name>"
-                    " or list available models: revospeech models"
-                ),
+                suggestion=suggestion,
             )
         # Pick the smallest by size_mb (None sorts as largest), else first.
         with_size = [m for m in ready if m.size_mb is not None]
@@ -94,20 +115,28 @@ def TTS(
             f"Contributing guide: see CONTRIBUTING.md"
         )
 
+    # Validate backend before attempting download — fail fast on typos.
+    if manifest.backend not in ("revovoice", "vits"):
+        raise ValueError(
+            f"Unsupported TTS backend: '{manifest.backend}' for model "
+            f"'{model_name}'. Supported backends: revovoice, vits"
+        )
+
+    # Auto-download: fetch local model files if not yet cached.
+    if auto_download and manifest.is_local and manifest.model_url:
+        status = check_model(model_name, task="tts")
+        if status.status == "needs-download":
+            logger.info("Model '%s' not downloaded. Auto-downloading...", model_name)
+            ensure_model(manifest)
+
     if manifest.backend == "revovoice":
         from .revovoice_engine import RevoVoiceTTS
 
         return RevoVoiceTTS(model_name, device)
 
-    if manifest.backend == "vits":
-        from .vits_engine import VitsTTS
+    from .vits_engine import VitsTTS
 
-        return VitsTTS(model_name, device)
-
-    raise ValueError(
-        f"Unsupported TTS backend: '{manifest.backend}' for model "
-        f"'{model_name}'. Supported backends: revovoice, vits"
-    )
+    return VitsTTS(model_name, device)
 
 
 __all__ = ["TTS", "BaseTTS", "Audio"]

@@ -10,19 +10,26 @@ Usage:
 
 from __future__ import annotations
 
+import logging
+
 from revospeech.config import set_api_key
 from revospeech.exceptions import RevosModelError
 from revospeech.registry import get
-from revospeech.registry.status import list_model_statuses, suggest_models
+from revospeech.registry.downloader import ensure_model
+from revospeech.registry.status import check_model, list_model_statuses, suggest_models
 
 from .base import BaseASR
 from .result import Segment, Transcript
+
+logger = logging.getLogger(__name__)
 
 
 def ASR(
     model_name: str | None = None,
     device: str = "auto",
     api_key: str | None = None,
+    *,
+    auto_download: bool = True,
 ) -> BaseASR:
     """Create an ASR engine for the given model.
 
@@ -33,6 +40,8 @@ def ASR(
             If None, auto-selects the first ready local model.
         device: Compute device — "auto", "cpu", or "cuda".
         api_key: If provided, persists it via ``set_api_key`` before loading.
+        auto_download: If True (default), automatically download local models
+            that are not yet cached before constructing the engine.
 
     Returns:
         A BaseASR instance ready for transcription.
@@ -48,12 +57,24 @@ def ASR(
     if model_name is None:
         ready = list_model_statuses(task="asr", mode="local", status="ready")
         if not ready:
+            available = list_model_statuses(task="asr")
+            if not available:
+                suggestion = (
+                    "No ASR models registered. Browse the catalog: "
+                    "'revospeech catalog list'"
+                    " then 'revospeech catalog pull <name>'."
+                )
+            else:
+                names = [m.name for m in available[:5]]
+                suggestion = (
+                    f"Download a model first with "
+                    f"'revospeech models --download <name>'. "
+                    f"Available: {', '.join(names)}"
+                    f"{' ...' if len(available) > 5 else ''}"
+                )
             raise RevosModelError(
                 "No ASR model specified and no ready local models found.",
-                suggestion=(
-                    "Download a model first: revospeech models download <name>"
-                    " or list available models: revospeech models"
-                ),
+                suggestion=suggestion,
             )
         # Pick the smallest by size_mb (None sorts as largest), else first.
         with_size = [m for m in ready if m.size_mb is not None]
@@ -94,15 +115,23 @@ def ASR(
             f"Contributing guide: see CONTRIBUTING.md"
         )
 
-    if manifest.backend == "sherpa-onnx":
-        from .sherpa_engine import SherpaOnnxASR
+    # Validate backend before attempting download — fail fast on typos.
+    if manifest.backend != "sherpa-onnx":
+        raise ValueError(
+            f"Unsupported ASR backend: '{manifest.backend}' for model "
+            f"'{model_name}'. Supported backends: sherpa-onnx"
+        )
 
-        return SherpaOnnxASR(model_name, device)
+    # Auto-download: fetch local model files if not yet cached.
+    if auto_download and manifest.is_local and manifest.model_url:
+        status = check_model(model_name, task="asr")
+        if status.status == "needs-download":
+            logger.info("Model '%s' not downloaded. Auto-downloading...", model_name)
+            ensure_model(manifest)
 
-    raise ValueError(
-        f"Unsupported ASR backend: '{manifest.backend}' for model "
-        f"'{model_name}'. Supported backends: sherpa-onnx"
-    )
+    from .sherpa_engine import SherpaOnnxASR
+
+    return SherpaOnnxASR(model_name, device)
 
 
 __all__ = ["ASR", "BaseASR", "Transcript", "Segment", "BatchReport", "BatchResult"]
