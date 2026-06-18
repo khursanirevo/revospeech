@@ -564,3 +564,475 @@ def test_revovoice_engine_synthesize_streaming_yields_chunks(mock_hf_user):
         chunks = list(engine.synthesize_streaming(text))
     assert len(chunks) > 1
     assert all(c.sample_rate == 24000 for c in chunks)
+
+
+# ---------------------------------------------------------------------------
+# VitsTTS internals — _phonemize_espeak, _phonemes_to_ids, helpers
+# ---------------------------------------------------------------------------
+def test_phonemize_espeak_real_subprocess(monkeypatch):
+    """_phonemize_espeak parses espeak-ng IPA output into phoneme lists."""
+    from revospeech.tts.vits_engine import _phonemize_espeak
+
+    fake_completed = MagicMock()
+    fake_completed.stdout = "s a l a m\na p a   k a b a r\n"
+
+    def fake_run(*args, **kwargs):
+        return fake_completed
+
+    monkeypatch.setattr("revospeech.tts.vits_engine.subprocess.run", fake_run)
+    result = _phonemize_espeak("Salam apa khabar", "ms")
+    assert result == [
+        ["s", " ", "a", " ", "l", " ", "a", " ", "m"],
+        [
+            "a",
+            " ",
+            "p",
+            " ",
+            "a",
+            " ",
+            " ",
+            " ",
+            "k",
+            " ",
+            "a",
+            " ",
+            "b",
+            " ",
+            "a",
+            " ",
+            "r",
+        ],
+    ]
+
+
+def test_phonemize_espeak_missing_binary(monkeypatch):
+    """_phonemize_espeak raises RuntimeError when espeak-ng is missing."""
+    from revospeech.tts.vits_engine import _phonemize_espeak
+
+    def boom(*args, **kwargs):
+        raise FileNotFoundError("espeak-ng not in PATH")
+
+    monkeypatch.setattr("revospeech.tts.vits_engine.subprocess.run", boom)
+    with pytest.raises(RuntimeError, match="espeak-ng not found"):
+        _phonemize_espeak("hello")
+
+
+def test_phonemize_espeak_strips_tie_bar(monkeypatch):
+    """Tie bar characters are filtered out of phoneme output."""
+    from revospeech.tts.vits_engine import _phonemize_espeak
+
+    fake_completed = MagicMock()
+    # "a‍b" — a-b with tie bar U+200D between
+    fake_completed.stdout = "a‍b\n"
+    monkeypatch.setattr(
+        "revospeech.tts.vits_engine.subprocess.run",
+        lambda *a, **k: fake_completed,
+    )
+    result = _phonemize_espeak("ab")
+    assert result == [["a", "b"]]
+
+
+def test_phonemize_espeak_skips_blank_lines(monkeypatch):
+    """Blank lines in espeak output are skipped."""
+    from revospeech.tts.vits_engine import _phonemize_espeak
+
+    fake_completed = MagicMock()
+    fake_completed.stdout = "\n\ns a l a m\n\n"
+    monkeypatch.setattr(
+        "revospeech.tts.vits_engine.subprocess.run",
+        lambda *a, **k: fake_completed,
+    )
+    result = _phonemize_espeak("salam")
+    assert result == [["s", " ", "a", " ", "l", " ", "a", " ", "m"]]
+
+
+def test_phonemes_to_ids_basic():
+    """_phonemes_to_ids emits BOS, phoneme IDs with PAD separators, EOS."""
+    from revospeech.tts.vits_engine import _phonemes_to_ids
+
+    id_map = {"^": [1], "$": [2], "_": [0], "a": [3], "b": [4]}
+    ids = _phonemes_to_ids(["a", "b"], id_map)
+    assert ids == [1, 3, 0, 4, 0, 2]
+
+
+def test_phonemes_to_ids_missing_phoneme_skipped(caplog):
+    """Unknown phonemes are skipped with a warning."""
+    from revospeech.tts.vits_engine import _phonemes_to_ids
+
+    id_map = {"^": [1], "$": [2], "_": [0], "a": [3]}
+    with caplog.at_level("WARNING", logger="revospeech.tts.vits_engine"):
+        ids = _phonemes_to_ids(["a", "z"], id_map)
+    assert ids == [1, 3, 0, 2]
+    assert any("Missing phoneme" in r.message for r in caplog.records)
+
+
+def test_phonemes_to_ids_uses_default_bos_eos_when_missing():
+    """Missing BOS/EOS in id_map fall back to [1] / [2]."""
+    from revospeech.tts.vits_engine import _phonemes_to_ids
+
+    id_map = {"_": [0], "a": [3]}
+    ids = _phonemes_to_ids(["a"], id_map)
+    assert ids == [1, 3, 0, 2]
+
+
+def test_normalize_text_simple_with_revo_norm(monkeypatch):
+    """_normalize_text_simple uses revo_norm when available."""
+    from revospeech.tts import vits_engine
+
+    fake_module = MagicMock()
+    fake_module.normalize_text.return_value = "normalized"
+
+    monkeypatch.setitem(sys.modules, "revo_norm", fake_module)
+    assert vits_engine._normalize_text_simple("Salam") == "normalized"
+    fake_module.normalize_text.assert_called_once_with("Salam", language="ms")
+
+
+def test_normalize_text_simple_without_revo_norm(monkeypatch, caplog):
+    """_normalize_text_simple falls back when revo_norm missing."""
+    from revospeech.tts import vits_engine
+
+    monkeypatch.setitem(sys.modules, "revo_norm", None)
+    with caplog.at_level("WARNING", logger="revospeech.tts.vits_engine"):
+        result = vits_engine._normalize_text_simple("Salam")
+    assert result == "Salam"
+    assert any("revo_norm not installed" in r.message for r in caplog.records)
+
+
+def test_audio_float_to_int16_clipping():
+    """_audio_float_to_int16 scales and clips into int16 range."""
+    from revospeech.tts.vits_engine import _audio_float_to_int16
+
+    samples = np.array([0.5, -0.5, 2.0, -2.0], dtype=np.float32)
+    out = _audio_float_to_int16(samples)
+    assert out.dtype == np.int16
+    assert out.max() <= 32767
+    assert out.min() >= -32768
+    assert out.shape == samples.shape
+
+
+def test_audio_float_to_int16_silent_input():
+    """Silent input does not divide by zero."""
+    from revospeech.tts.vits_engine import _audio_float_to_int16
+
+    samples = np.zeros(4, dtype=np.float32)
+    out = _audio_float_to_int16(samples)
+    assert np.all(out == 0)
+
+
+def test_vits_list_voices():
+    """list_voices returns the production speakers list."""
+    _register_vits()
+    from revospeech.tts.vits_engine import PRODUCTION_SPEAKERS, VitsTTS
+
+    engine = VitsTTS("test-vits")
+    assert engine.list_voices() == list(PRODUCTION_SPEAKERS)
+
+
+# ---------------------------------------------------------------------------
+# VitsTTS._ensure_repo, _get_fallback_phoneme_map, _load_speaker, synthesize
+# ---------------------------------------------------------------------------
+def test_vits_ensure_repo_uses_existing_speakers_json(tmp_path, monkeypatch):
+    """_ensure_repo short-circuits when speakers.json already exists."""
+    _register_vits()
+    monkeypatch.setattr("revospeech.hf_utils.get_hf_user", lambda *a, **kw: None)
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path / "home")
+
+    cache_dir = tmp_path / "home" / ".cache" / "revospeech" / "test-vits"
+    cache_dir.mkdir(parents=True)
+    (cache_dir / "speakers.json").write_text("{}")
+
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = VitsTTS("test-vits")
+    result = engine._ensure_repo()
+    assert result == cache_dir
+
+
+def test_vits_ensure_repo_downloads_when_missing(tmp_path, monkeypatch):
+    """_ensure_repo invokes download_gated_model when speakers.json absent."""
+    _register_vits()
+    monkeypatch.setattr("revospeech.hf_utils.get_hf_user", lambda *a, **kw: None)
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path / "home")
+
+    captured = []
+
+    def fake_download(url, dest):
+        captured.append((url, str(dest)))
+        dest_path = tmp_path / "home" / ".cache" / "revospeech" / "test-vits"
+        dest_path.mkdir(parents=True, exist_ok=True)
+        (dest_path / "speakers.json").write_text("{}")
+
+    monkeypatch.setattr("revospeech.hf_utils.download_gated_model", fake_download)
+
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = VitsTTS("test-vits")
+    result = engine._ensure_repo()
+    assert captured == [("TestOrg/vits-test", str(result))]
+
+
+def test_vits_get_fallback_phoneme_map(tmp_path, monkeypatch):
+    """_get_fallback_phoneme_map reads first available speaker config."""
+    _register_vits()
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path / "home")
+
+    cache_dir = tmp_path / "home" / ".cache" / "revospeech" / "test-vits"
+    speakers_dir = cache_dir / "speakers" / "sarah"
+    speakers_dir.mkdir(parents=True)
+    (speakers_dir / "model.onnx.json").write_text(
+        '{"phoneme_id_map": {"a": [1], "b": [2]}}'
+    )
+
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = VitsTTS("test-vits")
+    engine._models_dir = cache_dir
+    result = engine._get_fallback_phoneme_map(cache_dir)
+    assert result == {"a": [1], "b": [2]}
+
+
+def test_vits_get_fallback_phoneme_map_caches(tmp_path, monkeypatch):
+    """_get_fallback_phoneme_map does not cache when no speaker config found."""
+    _register_vits()
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path / "home")
+
+    cache_dir = tmp_path / "home" / ".cache" / "revospeech" / "test-vits"
+    cache_dir.mkdir(parents=True)
+
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = VitsTTS("test-vits")
+    engine._models_dir = cache_dir
+    # No speakers dir → returns {} (without caching, since no raw map was found)
+    first = engine._get_fallback_phoneme_map(cache_dir)
+    assert first == {}
+    assert engine._fallback_phoneme_map is None
+
+
+def test_vits_load_speaker_file_not_found(tmp_path, monkeypatch):
+    """_load_speaker raises FileNotFoundError when model.onnx is missing."""
+    _register_vits()
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path / "home")
+
+    cache_dir = tmp_path / "home" / ".cache" / "revospeech" / "test-vits"
+    speakers_dir = cache_dir / "speakers" / "sarah"
+    speakers_dir.mkdir(parents=True)
+    # Create config but no model.onnx
+    (speakers_dir / "model.onnx.json").write_text('{"inference": {}}')
+
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = VitsTTS("test-vits")
+    engine._models_dir = cache_dir
+    with pytest.raises(FileNotFoundError, match="Speaker model not found"):
+        engine._load_speaker("sarah")
+
+
+@patch("revospeech.tts.vits_engine.ort.InferenceSession")
+def test_vits_load_speaker_success(mock_session_cls, tmp_path, monkeypatch):
+    """_load_speaker loads ONNX session and phoneme map from speaker dir."""
+    _register_vits()
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path / "home")
+
+    cache_dir = tmp_path / "home" / ".cache" / "revospeech" / "test-vits"
+    speakers_dir = cache_dir / "speakers" / "sarah"
+    speakers_dir.mkdir(parents=True)
+    (speakers_dir / "model.onnx").write_bytes(b"fake-onnx")
+    (speakers_dir / "model.onnx.json").write_text(
+        '{"inference": {"noise_scale": 0.5}, '
+        '"phoneme_id_map": {"a": [1], "^": [10], "$": [20], "_": [0]}}'
+    )
+
+    mock_session = MagicMock()
+    mock_session_cls.return_value = mock_session
+
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = VitsTTS("test-vits")
+    engine._models_dir = cache_dir
+    sess, pmap, config = engine._load_speaker("sarah")
+    assert sess is mock_session
+    assert pmap == {"a": [1], "^": [10], "$": [20], "_": [0]}
+    assert config["inference"]["noise_scale"] == 0.5
+
+    # Calling again returns cached result.
+    sess2, _, _ = engine._load_speaker("sarah")
+    assert sess2 is mock_session
+    mock_session_cls.assert_called_once()
+
+
+@patch("revospeech.tts.vits_engine.ort.InferenceSession")
+def test_vits_load_speaker_uses_fallback_map(mock_session_cls, tmp_path, monkeypatch):
+    """_load_speaker falls back to sibling phoneme map when config lacks one."""
+    _register_vits()
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path / "home")
+
+    cache_dir = tmp_path / "home" / ".cache" / "revospeech" / "test-vits"
+
+    # Target speaker has no phoneme_id_map.
+    target_dir = cache_dir / "speakers" / "sarah"
+    target_dir.mkdir(parents=True)
+    (target_dir / "model.onnx").write_bytes(b"x")
+    (target_dir / "model.onnx.json").write_text('{"inference": {}}')
+
+    # Sibling speaker has the map.
+    other_dir = cache_dir / "speakers" / "paan"
+    other_dir.mkdir(parents=True)
+    (other_dir / "model.onnx.json").write_text(
+        '{"phoneme_id_map": {"^": [1], "$": [2], "a": [3]}}'
+    )
+
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = VitsTTS("test-vits")
+    engine._models_dir = cache_dir
+    sess, pmap, _ = engine._load_speaker("sarah")
+    assert pmap == {"^": [1], "$": [2], "a": [3]}
+
+
+@patch("revospeech.tts.vits_engine.ort.InferenceSession")
+def test_vits_synthesize_full_pipeline(mock_session_cls, tmp_path, monkeypatch):
+    """End-to-end synthesize pipeline with mocked espeak + ONNX session."""
+    _register_vits()
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path / "home")
+
+    cache_dir = tmp_path / "home" / ".cache" / "revospeech" / "test-vits"
+    speakers_dir = cache_dir / "speakers" / "sarah"
+    speakers_dir.mkdir(parents=True)
+    (speakers_dir / "model.onnx").write_bytes(b"x")
+    (speakers_dir / "model.onnx.json").write_text(
+        '{"inference": {"noise_scale": 0.667, "length_scale": 1.0, '
+        '"noise_w": 0.8}, "phoneme_id_map": '
+        '{"^": [1], "$": [2], "_": [0], "a": [3], "b": [4]}}'
+    )
+
+    mock_session = MagicMock()
+    mock_session.run.return_value = [np.zeros((1, 1, 8000), dtype=np.float32)]
+    mock_session_cls.return_value = mock_session
+
+    fake_completed = MagicMock()
+    fake_completed.stdout = "a b\n"
+    monkeypatch.setattr(
+        "revospeech.tts.vits_engine.subprocess.run",
+        lambda *a, **k: fake_completed,
+    )
+    monkeypatch.setitem(sys.modules, "revo_norm", None)
+
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = VitsTTS("test-vits")
+    engine._models_dir = cache_dir
+    audio = engine.synthesize("ab")
+    assert audio.sample_rate == 22050
+    assert len(audio.samples) > 0
+    mock_session.run.assert_called_once()
+
+
+@patch("revospeech.tts.vits_engine.ort.InferenceSession")
+def test_vits_synthesize_with_sentence_silence(mock_session_cls, tmp_path, monkeypatch):
+    """sentence_silence > 0 inserts silence between sentences."""
+    _register_vits()
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path / "home")
+
+    cache_dir = tmp_path / "home" / ".cache" / "revospeech" / "test-vits"
+    speakers_dir = cache_dir / "speakers" / "sarah"
+    speakers_dir.mkdir(parents=True)
+    (speakers_dir / "model.onnx").write_bytes(b"x")
+    (speakers_dir / "model.onnx.json").write_text(
+        '{"inference": {}, "phoneme_id_map": {"^": [1], "$": [2], "_": [0], "a": [3]}}'
+    )
+
+    mock_session = MagicMock()
+    mock_session.run.return_value = [np.zeros((1, 1, 1000), dtype=np.float32)]
+    mock_session_cls.return_value = mock_session
+
+    fake_completed = MagicMock()
+    fake_completed.stdout = "a\na\n"  # two sentences
+    monkeypatch.setattr(
+        "revospeech.tts.vits_engine.subprocess.run",
+        lambda *a, **k: fake_completed,
+    )
+    monkeypatch.setitem(sys.modules, "revo_norm", None)
+
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = VitsTTS("test-vits")
+    engine._models_dir = cache_dir
+    audio = engine.synthesize("a a", sentence_silence=0.5)
+    # 2 sentences × (1000 sample chunk + 11025 sample silence gap)
+    assert len(audio.samples) == 2 * (1000 + 11025)
+
+
+@patch("revospeech.tts.vits_engine.ort.InferenceSession")
+def test_vits_synthesize_no_sentences_returns_empty(
+    mock_session_cls, tmp_path, monkeypatch
+):
+    """Empty phonemize output returns Audio with zero samples."""
+    _register_vits()
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path / "home")
+
+    cache_dir = tmp_path / "home" / ".cache" / "revospeech" / "test-vits"
+    speakers_dir = cache_dir / "speakers" / "sarah"
+    speakers_dir.mkdir(parents=True)
+    (speakers_dir / "model.onnx").write_bytes(b"x")
+    (speakers_dir / "model.onnx.json").write_text(
+        '{"inference": {}, "phoneme_id_map": {"^": [1], "$": [2]}}'
+    )
+
+    mock_session = MagicMock()
+    mock_session_cls.return_value = mock_session
+
+    fake_completed = MagicMock()
+    fake_completed.stdout = ""  # no sentences
+    monkeypatch.setattr(
+        "revospeech.tts.vits_engine.subprocess.run",
+        lambda *a, **k: fake_completed,
+    )
+    monkeypatch.setitem(sys.modules, "revo_norm", None)
+
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = VitsTTS("test-vits")
+    engine._models_dir = cache_dir
+    audio = engine.synthesize("")
+    assert len(audio.samples) == 0
+    mock_session.run.assert_not_called()
+
+
+@patch("revospeech.tts.vits_engine.ort.InferenceSession")
+def test_vits_synthesize_streaming_yields_per_chunk(
+    mock_session_cls, tmp_path, monkeypatch
+):
+    """synthesize_streaming splits long text and yields one Audio per chunk."""
+    _register_vits()
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path / "home")
+
+    cache_dir = tmp_path / "home" / ".cache" / "revospeech" / "test-vits"
+    speakers_dir = cache_dir / "speakers" / "sarah"
+    speakers_dir.mkdir(parents=True)
+    (speakers_dir / "model.onnx").write_bytes(b"x")
+    (speakers_dir / "model.onnx.json").write_text(
+        '{"inference": {}, "phoneme_id_map": {"^": [1], "$": [2], "_": [0], "a": [3]}}'
+    )
+
+    mock_session = MagicMock()
+    mock_session.run.return_value = [np.zeros((1, 1, 1000), dtype=np.float32)]
+    mock_session_cls.return_value = mock_session
+
+    fake_completed = MagicMock()
+    fake_completed.stdout = "a a a\n"
+    monkeypatch.setattr(
+        "revospeech.tts.vits_engine.subprocess.run",
+        lambda *a, **k: fake_completed,
+    )
+    monkeypatch.setitem(sys.modules, "revo_norm", None)
+
+    from revospeech.tts.vits_engine import VitsTTS
+
+    engine = VitsTTS("test-vits")
+    engine._models_dir = cache_dir
+    # Long text → multiple chunks via _split_text.
+    text = ". ".join("aaa bbb ccc ddd eee fff ggg" for _ in range(30))
+    chunks = list(engine.synthesize_streaming(text))
+    assert len(chunks) > 1
+    assert all(c.sample_rate == 22050 for c in chunks)
