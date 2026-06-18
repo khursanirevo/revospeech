@@ -6,6 +6,7 @@ import time
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import Any
 
 from .result import BatchReport, BatchResult, Transcript
 
@@ -23,7 +24,7 @@ class BaseASR(ABC):
         )
 
     @abstractmethod
-    def transcribe(self, audio_path: str | Path) -> Transcript: ...
+    def transcribe(self, audio_path: str | Path | Any) -> Transcript: ...
 
     def transcribe_batch(
         self,

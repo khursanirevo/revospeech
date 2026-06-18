@@ -10,7 +10,7 @@ import sherpa_onnx
 from revospeech.device import auto_detect_device
 from revospeech.registry import ensure_model, get
 
-from .audio import read_waveform
+from .audio import AudioInput, read_waveform
 from .base import BaseASR
 from .result import Segment, Transcript
 
@@ -75,15 +75,23 @@ class SherpaOnnxASR(BaseASR):
                 device=self.device,
             )
 
-    def transcribe(self, audio_path: str | Path) -> Transcript:
-        """Transcribe an audio file using sherpa-onnx.
+    def transcribe(self, audio_path: AudioInput) -> Transcript:
+        """Transcribe an audio file or in-memory stream using sherpa-onnx.
 
         Args:
-            audio_path: Path to the audio file.
+            audio_path: Path to the audio file (``str`` / ``pathlib.Path``) or
+                a binary file-like object (``io.BytesIO``) containing encoded
+                audio (WAV, FLAC, etc.).
 
         Returns:
             Transcript with text, segments, and detected language.
         """
+        if isinstance(audio_path, (str, Path)):
+            display_name = str(audio_path)
+        else:
+            display_name = "<bytesio>"
+
+        logger.debug("Transcribing audio: %s", display_name)
         samples, sr = read_waveform(audio_path, target_sr=self._sample_rate)
 
         stream = self._recognizer.create_stream()
