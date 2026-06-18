@@ -140,3 +140,82 @@ def test_info_shows_catalog_repo(runner):
     result = runner.invoke(cli, ["info"])
     assert result.exit_code == 0
     assert "Catalog repo" in result.output
+
+
+@patch("revospeech.catalog._download_raw")
+@patch("revospeech.catalog._list_yaml_files")
+def test_catalog_search_matches_name(mock_list, mock_download, runner):
+    """revos catalog search finds models by name."""
+    mock_list.return_value = ["revos/models/asr/zipformer.yaml"]
+    mock_download.return_value = (
+        "name: zipformer-v2\n"
+        "task: asr\n"
+        "backend: sherpa-onnx\n"
+        "model_url: test\n"
+        "sample_rate: 16000\n"
+        "language: en\n"
+        "description: Fast English ASR\n"
+        "files: {}\n"
+    )
+
+    result = runner.invoke(cli, ["catalog", "search", "zip"])
+    assert result.exit_code == 0
+    assert "zipformer-v2" in result.output
+
+
+@patch("revospeech.catalog._download_raw")
+@patch("revospeech.catalog._list_yaml_files")
+def test_catalog_search_no_matches(mock_list, mock_download, runner):
+    """revos catalog search shows suggestion when nothing matches."""
+    mock_list.return_value = ["revos/models/asr/zipformer.yaml"]
+    mock_download.return_value = (
+        "name: zipformer-v2\n"
+        "task: asr\n"
+        "backend: sherpa-onnx\n"
+        "model_url: test\n"
+        "sample_rate: 16000\n"
+        "language: en\n"
+        "description: Fast English ASR\n"
+        "files: {}\n"
+    )
+
+    result = runner.invoke(cli, ["catalog", "search", "klingon"])
+    assert result.exit_code == 0
+    assert "No models found" in result.output
+
+
+@patch("revospeech.catalog._download_raw")
+@patch("revospeech.catalog._list_yaml_files")
+def test_catalog_search_filter_by_task(mock_list, mock_download, runner):
+    """revos catalog search --task filters results."""
+    mock_list.return_value = [
+        "revos/models/asr/zipformer.yaml",
+        "revos/models/tts/vits.yaml",
+    ]
+    mock_download.side_effect = [
+        (
+            "name: zipformer-v2\n"
+            "task: asr\n"
+            "backend: sherpa-onnx\n"
+            "model_url: test\n"
+            "sample_rate: 16000\n"
+            "language: en\n"
+            "description: ASR\n"
+            "files: {}\n"
+        ),
+        (
+            "name: vits-en\n"
+            "task: tts\n"
+            "backend: vits\n"
+            "model_url: test\n"
+            "sample_rate: 22050\n"
+            "language: en\n"
+            "description: TTS\n"
+            "files: {}\n"
+        ),
+    ]
+
+    result = runner.invoke(cli, ["catalog", "search", "en", "--task", "tts"])
+    assert result.exit_code == 0
+    assert "vits-en" in result.output
+    assert "zipformer-v2" not in result.output
