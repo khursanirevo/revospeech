@@ -6,6 +6,7 @@ import logging
 import threading
 from pathlib import Path
 
+from ..exceptions import RevosModelError
 from .manifest import ModelManifest, load_manifest
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,16 @@ def register(manifest: ModelManifest) -> None:
         manifest: The ModelManifest to register.
     """
     with _registry_lock:
+        required = ["name", "task", "backend", "model_type"]
+        missing = [f for f in required if not getattr(manifest, f)]
+        if missing:
+            raise RevosModelError(
+                f"Manifest missing required fields: {', '.join(missing)}",
+                suggestion=(
+                    "Ensure your YAML manifest has name, task, "
+                    "backend, and model_type fields."
+                ),
+            )
         key = (manifest.task, manifest.name)
         _models[key] = manifest
         logger.debug("Registered model: %s/%s", manifest.task, manifest.name)

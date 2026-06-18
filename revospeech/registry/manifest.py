@@ -36,6 +36,7 @@ class ModelManifest:
     sha256: str = ""  # for download verification
     min_ram_mb: int = 0  # minimum RAM requirement
     min_vram_mb: int = 0  # minimum VRAM requirement
+    quality_notes: str = ""  # notes about model quality/caveats
 
     @property
     def is_local(self) -> bool:
@@ -82,4 +83,5 @@ def load_manifest(path: Path) -> ModelManifest:
         sha256=data.get("sha256", ""),
         min_ram_mb=data.get("min_ram_mb", 0),
         min_vram_mb=data.get("min_vram_mb", 0),
+        quality_notes=data.get("quality_notes", ""),
     )

@@ -4,7 +4,7 @@ The catalog lives in the revos/models/ directory of this repository.
 Team members add YAML manifests to the repo; users discover and
 pull them without upgrading the package.
 
-Default catalog: khursanirevo/revospeech on GitHub
+Default catalog: revolab/revospeech on GitHub
 Override with: REVOS_CATALOG_REPO env var or config.yaml
 """
 
@@ -24,7 +24,7 @@ from .registry.manifest import ModelManifest, load_manifest
 logger = logging.getLogger(__name__)
 
 # Default: this repo on GitHub
-DEFAULT_CATALOG_REPO = "khursanirevo/revospeech"
+DEFAULT_CATALOG_REPO = "revolab/revospeech"
 
 # GitHub API base
 _GITHUB_API = "https://api.github.com/repos"
@@ -43,7 +43,7 @@ def get_catalog_repo() -> str:
     Checks in order:
       1. REVOS_CATALOG_REPO environment variable
       2. ~/.config/revospeech/config.yaml (catalog_repo key)
-      3. Default: khursanirevo/revospeech
+      3. Default: revolab/revospeech
 
     Returns:
         GitHub repository in owner/repo format.

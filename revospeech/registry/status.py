@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 from dataclasses import dataclass
 
 from revospeech.config import get_api_key
@@ -117,4 +118,23 @@ def list_model_statuses(
     return results
 
 
-__all__ = ["ModelStatus", "check_model", "list_model_statuses"]
+def suggest_models(name: str, task: str | None = None) -> list[str]:
+    """Return model names that closely match the given name.
+
+    Uses difflib's fuzzy matching to find close matches among registered
+    models. Useful for "did you mean?" suggestions when a model lookup fails.
+
+    Args:
+        name: The (possibly misspelled) model name to match.
+        task: Optional task filter ("asr" or "tts").
+
+    Returns:
+        Up to 3 close-matching model names, sorted by similarity.
+    """
+    all_models = _list_manifests(task=task)
+    names = [m.name for m in all_models]
+    close = difflib.get_close_matches(name, names, n=3, cutoff=0.4)
+    return close
+
+
+__all__ = ["ModelStatus", "check_model", "list_model_statuses", "suggest_models"]
