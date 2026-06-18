@@ -363,22 +363,22 @@
 ### 7.4 README
 
 - [x] Badges: Python versions, license, CI
-- [ ] 10-second quickstart at top
-- [ ] "Local vs API" two-column comparison
-- [ ] Model table with download size, language, quality notes
-- [ ] "Extensible" section with custom backend example
+- [x] 10-second quickstart at top — `## Quickstart` at README L9
+- [x] "Local vs API" two-column comparison — `## Local vs Cloud API` at L298
+- [x] Model table with download size, language, quality notes — L249, with size + quality notes
+- [x] "Extensible" section with custom backend example — `## Adding Custom Models` at L382
 
 ---
 
 ## Phase 8 — Release
 
-- [ ] Finalize package name and org namespace
-- [ ] Update all references from `khursanirevo` to revolab org
-- [ ] Clean `pyproject.toml` metadata for PyPI
-- [ ] Test install from clean venv: `pip install revospeech[all]`
-- [ ] Verify CLI entry point works post-install
-- [ ] Publish to TestPyPI → verify → publish to PyPI
-- [ ] Set up docs site (GitHub Pages or Read the Docs)
+- [ ] Finalize package name and org namespace (**BLOCKED** — pending org migration decision)
+- [ ] Update all references from `khursanirevo` to revolab org (**BLOCKED** — pending GitHub org creation)
+- [x] Clean `pyproject.toml` metadata for PyPI — Windows classifier, tqdm core, playback extra
+- [x] Test install from clean venv: `pip install revospeech[all]` — verified via `uv build` + clean venv install
+- [x] Verify CLI entry point works post-install — `revospeech --version` returns `0.1.1`
+- [ ] Publish to TestPyPI → verify → publish to PyPI (**BLOCKED** — pending release window)
+- [ ] Set up docs site (GitHub Pages or Read the Docs) — mkdocs-material configured; deploy workflow needs `pages:` push trigger (currently builds on CI only)
 
 ---
 
