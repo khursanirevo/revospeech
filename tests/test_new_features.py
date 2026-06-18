@@ -292,3 +292,68 @@ def test_tts_synthesize_batch_with_error_raise():
     engine = FakeTTS("test-tts")
     with pytest.raises(RuntimeError, match="Batch synthesis failed"):
         engine.synthesize_batch(["a"], on_error="raise")
+
+
+def test_audio_play_no_sounddevice():
+    import sys
+
+    from revospeech.tts.result import Audio
+
+    a = Audio(samples=np.zeros(100, dtype=np.float32), sample_rate=16000)
+
+    # Temporarily hide sounddevice module
+    old = sys.modules.get("sounddevice")
+    sys.modules["sounddevice"] = None
+    try:
+        with pytest.raises(ImportError, match="sounddevice"):
+            a.play()
+    finally:
+        if old is not None:
+            sys.modules["sounddevice"] = old
+        else:
+            sys.modules.pop("sounddevice", None)
+
+
+def test_batch_report_save(tmp_path):
+    from revospeech.asr.result import BatchReport, BatchResult, Segment, Transcript
+
+    report = BatchReport(
+        items=[
+            BatchResult(
+                input="file1.wav",
+                result=Transcript("hello", [Segment(0, 1, "hello", 0.9)], "en"),
+                duration=0.5,
+            ),
+            BatchResult(input="file2.wav", error="failed", duration=0.1),
+        ],
+        total=2,
+        succeeded=1,
+        failed=1,
+        total_duration=0.6,
+    )
+    path = tmp_path / "report.json"
+    report.save(path)
+    import json
+
+    data = json.loads(path.read_text())
+    assert data["total"] == 2
+    assert data["succeeded"] == 1
+    assert len(data["items"]) == 2
+
+
+def test_batch_report_repr():
+    from revospeech.asr.result import BatchReport
+
+    r = BatchReport(items=[], total=5, succeeded=3, failed=2, total_duration=1.5)
+    s = repr(r)
+    assert "BatchReport" in s
+    assert "total=5" in s
+
+
+def test_batch_result_repr():
+    from revospeech.asr.result import BatchResult
+
+    r = BatchResult(input="test.wav", duration=0.5)
+    s = repr(r)
+    assert "BatchResult" in s
+    assert "ok" in s
