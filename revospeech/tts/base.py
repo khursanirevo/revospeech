@@ -126,6 +126,12 @@ class BaseTTS(ABC):
 
         Default returns an empty list. Override in subclasses that support
         multiple speakers (e.g., VITS multi-speaker models).
+
+        Example:
+            >>> from revospeech import TTS
+            >>> tts = TTS('vits-ms')  # doctest: +SKIP
+            >>> tts.list_voices()  # doctest: +SKIP
+            ['sarah', 'paan', 'anwar']
         """
         return []
 
@@ -134,6 +140,12 @@ class BaseTTS(ABC):
 
         Pulled from the model manifest if available, otherwise returns
         engine defaults.
+
+        Example:
+            >>> from revospeech import TTS
+            >>> tts = TTS('revovoice')  # doctest: +SKIP
+            >>> 'voice-cloning' in tts.list_capabilities()  # doctest: +SKIP
+            True
         """
         from revospeech.registry import get
 
@@ -206,6 +218,13 @@ class BaseTTS(ABC):
         Automatically splits text at sentence boundaries, synthesizes
         each chunk, and joins the audio with short silence gaps.
 
+        Example:
+            >>> from revospeech import TTS
+            >>> tts = TTS()  # doctest: +SKIP
+            >>> long_text = open('script.txt').read()  # doctest: +SKIP
+            >>> audio = tts.synthesize_long(  # doctest: +SKIP
+            ...     long_text, output_path='out.wav')
+
         Args:
             text: Long text to synthesize.
             output_path: Optional path to save the concatenated audio.
@@ -255,6 +274,14 @@ class BaseTTS(ABC):
         **kwargs: Any,
     ) -> BatchReport:
         """Synthesize multiple texts in parallel.
+
+        Example:
+            >>> from revospeech import TTS
+            >>> tts = TTS()  # doctest: +SKIP
+            >>> report = tts.synthesize_batch(  # doctest: +SKIP
+            ...     ['Hello.', 'World.'],
+            ...     output_dir='audio/',
+            ... )
 
         Args:
             texts: List of text strings to synthesize.

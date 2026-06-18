@@ -322,7 +322,7 @@
 
 **Layer 2 — Docstrings (15% of users)**
 
-- [ ] Every public method docstring starts with runnable example
+- [x] Every public method docstring starts with runnable example — factory funcs + BaseASR/BaseTTS methods + Transcript/Audio/BatchReport.save
 - [x] Docstring examples tested with `pytest-doctest` or `xdoctest` — `tests/test_docstring_examples.py` + xdoctest dev dep
 
 **Layer 3 — Full API reference (5% of users)**

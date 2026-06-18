@@ -28,6 +28,12 @@ class BaseASR(ABC):
 
         Default returns the model's manifest language. Subclasses with
         proper detection (e.g., Whisper-based) should override.
+
+        Example:
+            >>> from revospeech import ASR
+            >>> asr = ASR('zipformer-v2')  # doctest: +SKIP
+            >>> asr.detect_language('audio.wav')  # doctest: +SKIP
+            'en'
         """
         from revospeech.registry import get
 
@@ -38,7 +44,14 @@ class BaseASR(ABC):
             return "en"
 
     def list_languages(self) -> list[str]:
-        """Return supported language codes for this engine."""
+        """Return supported language codes for this engine.
+
+        Example:
+            >>> from revospeech import ASR
+            >>> asr = ASR('zipformer-v2')  # doctest: +SKIP
+            >>> asr.list_languages()  # doctest: +SKIP
+            ['en']
+        """
         from revospeech.registry import get
 
         try:
@@ -59,6 +72,14 @@ class BaseASR(ABC):
         on_error: str = "continue",
     ) -> BatchReport:
         """Transcribe multiple audio files in parallel.
+
+        Example:
+            >>> from revospeech import ASR
+            >>> asr = ASR()  # doctest: +SKIP
+            >>> report = asr.transcribe_batch(  # doctest: +SKIP
+            ...     ['a.wav', 'b.wav', 'c.wav'])
+            >>> report.save('batch.json')  # doctest: +SKIP
+            >>> print(report.succeeded, report.failed)  # doctest: +SKIP
 
         Args:
             paths: List of audio file paths.
