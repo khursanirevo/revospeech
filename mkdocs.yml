@@ -37,7 +37,13 @@ nav:
   - Quickstart: quickstart.md
   - CLI Reference: cli.md
   - Configuration: configuration.md
-  - API Reference: api.md
+  - API Reference:
+      - Overview: api.md
+      - ASR: api/asr.md
+      - TTS: api/tts.md
+      - Registry: api/registry.md
+      - Result Types: api/results.md
+      - CLI: api/cli.md
   - Troubleshooting: troubleshooting.md
 
 plugins:

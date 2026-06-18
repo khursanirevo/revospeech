@@ -1,19 +1,23 @@
 # API Reference
 
-## Top-level
+Complete API reference organized by area. Click into each section for details.
 
-::: revospeech
+## Areas
 
-## ASR
+- [ASR (Speech Recognition)](asr.md) — `ASR()`, `BaseASR`, streaming, language detection
+- [TTS (Speech Synthesis)](tts.md) — `TTS()`, `BaseTTS`, streaming, voice listing
+- [Registry](registry.md) — Model manifests, listing, search, status
+- [CLI](cli.md) — Command-line interface commands and flags
+- [Result Types](results.md) — `Transcript`, `Audio`, `BatchReport`, `Segment`
 
-::: revospeech.asr
+## Quick API lookup
 
-## TTS
-
-::: revospeech.tts
-
-## Result types
-
-::: revospeech.asr.result
-
-::: revospeech.tts.result
+| What | Where |
+|------|-------|
+| Transcribe audio | `revospeech.ASR().transcribe(path)` |
+| Synthesize speech | `revospeech.TTS().synthesize(text)` |
+| List models | `revospeech.list_models()` |
+| Search models | `revospeech.search_models(query)` |
+| Check model status | `revospeech.check_model(name)` |
+| Save transcript | `Transcript.save('out.srt')` |
+| Play audio | `Audio.play()` |
