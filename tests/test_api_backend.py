@@ -380,6 +380,96 @@ def test_revolab_asr_close(monkeypatch):
     assert closed[0]
 
 
+# ---------------------------------------------------------------------------
+# RevolabASR: __init__ branches + RevosEngineError pass-through
+# ---------------------------------------------------------------------------
+def test_revolab_asr_init_with_manifest_endpoint(monkeypatch):
+    """__init__ reads api_endpoint from manifest when present."""
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register
+
+    saved = dict(_models)
+    _models.clear()
+    register(
+        ModelManifest(
+            name="revolab-asr-v1",
+            task="asr",
+            backend="revolab",
+            model_type="revolab",
+            model_url="",
+            sample_rate=16000,
+            language="en",
+            description="",
+            mode="api",
+            api_endpoint="https://custom.asr.api/v2",
+        )
+    )
+    captured = {}
+    monkeypatch.setattr(
+        "revospeech.http_client.get_api_key", lambda *a, **kw: "rv-test12345678"
+    )
+
+    class _FakeClient:
+        def __init__(self, *args, endpoint=None, **kwargs):
+            captured["endpoint"] = endpoint
+
+    monkeypatch.setattr("revospeech.asr.revolab_engine.RevolabClient", _FakeClient)
+    try:
+        from revospeech.asr.revolab_engine import RevolabASR
+
+        RevolabASR("revolab-asr-v1")
+    finally:
+        _models.clear()
+        _models.update(saved)
+    assert captured["endpoint"] == "https://custom.asr.api/v2"
+
+
+def test_revolab_asr_init_unknown_model_falls_back(monkeypatch):
+    """__init__ falls back to default endpoint when model not registered."""
+    captured = {}
+    monkeypatch.setattr(
+        "revospeech.http_client.get_api_key", lambda *a, **kw: "rv-test12345678"
+    )
+
+    class _FakeClient:
+        def __init__(self, *args, endpoint=None, **kwargs):
+            captured["endpoint"] = endpoint
+
+    monkeypatch.setattr("revospeech.asr.revolab_engine.RevolabClient", _FakeClient)
+    from revospeech.asr.revolab_engine import RevolabASR
+
+    RevolabASR("totally-unknown-model")
+    assert captured["endpoint"] == "https://api.revolab.ai/v1"
+
+
+def test_revolab_asr_transcribe_passes_engine_error_through(tmp_path):
+    """RevosEngineError from client.post is re-raised, not wrapped."""
+    import numpy as np
+    import soundfile as sf
+
+    from revospeech.asr.revolab_engine import RevolabASR
+    from revospeech.exceptions import RevosEngineError
+
+    wav = tmp_path / "test.wav"
+    samples = np.zeros(16000, dtype=np.float32)
+    sf.write(str(wav), samples, 16000)
+
+    class _MockClient:
+        def post(self, path, **kwargs):
+            raise RevosEngineError("rate limited", suggestion="retry later")
+
+        def close(self):
+            pass
+
+    engine = RevolabASR.__new__(RevolabASR)
+    engine.model_name = "test"
+    engine.device = "cpu"
+    engine._client = _MockClient()
+
+    with pytest.raises(RevosEngineError, match="rate limited"):
+        engine.transcribe(str(wav))
+
+
 def test_revolab_tts_synthesize_calls_api(monkeypatch):
     """synthesize() posts text and fetches audio."""
     import base64 as b64
