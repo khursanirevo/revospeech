@@ -289,3 +289,149 @@ def test_request_403_raises_config_error(monkeypatch):
     with pytest.raises(RevosConfigError, match="403"):
         client.get("/asr/result")
     client.close()
+
+
+def test_revolab_asr_transcribe_calls_api(monkeypatch, tmp_path):
+    """transcribe() uploads audio and parses response."""
+    import numpy as np
+    import soundfile as sf
+
+    from revospeech.asr.revolab_engine import RevolabASR
+
+    wav = tmp_path / "test.wav"
+    samples = np.zeros(16000, dtype=np.float32)
+    sf.write(str(wav), samples, 16000)
+
+    engine = RevolabASR.__new__(RevolabASR)
+    engine.model_name = "revolab-asr-v1"
+    engine.device = "cpu"
+
+    class _MockClient:
+        def __init__(self):
+            self.calls = []
+
+        def post(self, path, **kwargs):
+            self.calls.append((path, kwargs))
+            return {
+                "text": "hello world",
+                "language": "en",
+                "segments": [
+                    {"start": 0.0, "end": 1.0, "text": "hello", "confidence": 0.9}
+                ],
+            }
+
+        def close(self):
+            pass
+
+    engine._client = _MockClient()
+
+    result = engine.transcribe(str(wav), language="en", word_timestamps=True)
+    assert result.text == "hello world"
+    assert result.language == "en"
+    assert len(result.segments) == 1
+    assert engine._client.calls[0][0] == "/asr/transcribe"
+
+
+def test_revolab_asr_transcribe_wraps_errors(tmp_path):
+    """transcribe() wraps non-RevosEngineError exceptions."""
+    import numpy as np
+    import soundfile as sf
+
+    from revospeech.asr.revolab_engine import RevolabASR
+    from revospeech.exceptions import RevosEngineError
+
+    wav = tmp_path / "test.wav"
+    samples = np.zeros(16000, dtype=np.float32)
+    sf.write(str(wav), samples, 16000)
+
+    engine = RevolabASR.__new__(RevolabASR)
+    engine.model_name = "test"
+    engine.device = "cpu"
+
+    class _MockClient:
+        def post(self, path, **kwargs):
+            raise RuntimeError("network gone")
+
+        def close(self):
+            pass
+
+    engine._client = _MockClient()
+
+    with pytest.raises(RevosEngineError, match="ASR API call failed"):
+        engine.transcribe(str(wav))
+
+
+def test_revolab_asr_close(monkeypatch):
+    """close() delegates to underlying client."""
+    from revospeech.asr.revolab_engine import RevolabASR
+
+    engine = RevolabASR.__new__(RevolabASR)
+    engine.model_name = "test"
+    engine.device = "cpu"
+
+    closed = [False]
+
+    class _MockClient:
+        def close(self):
+            closed[0] = True
+
+    engine._client = _MockClient()
+    engine.close()
+    assert closed[0]
+
+
+def test_revolab_tts_synthesize_calls_api(monkeypatch):
+    """synthesize() posts text and fetches audio."""
+    import base64 as b64
+    import io
+
+    import numpy as np
+    import soundfile as sf
+
+    from revospeech.tts.revolab_engine import RevolabTTS
+
+    engine = RevolabTTS.__new__(RevolabTTS)
+    engine.model_name = "revolab-tts-v1"
+    engine.device = "cpu"
+
+    buf = io.BytesIO()
+    samples = np.zeros(22050, dtype=np.float32)
+    sf.write(buf, samples, 22050, format="WAV")
+    encoded = b64.b64encode(buf.getvalue()).decode()
+
+    class _MockClient:
+        def __init__(self):
+            self.posts = []
+
+        def post(self, path, **kwargs):
+            self.posts.append((path, kwargs))
+            return {"audio_base64": encoded, "sample_rate": 22050}
+
+        def close(self):
+            pass
+
+    engine._client = _MockClient()
+
+    audio = engine.synthesize("hello world")
+    assert engine._client.posts[0][0] == "/tts/synthesize"
+    assert audio.sample_rate == 22050
+    assert len(audio.samples) == 22050
+
+
+def test_revolab_tts_close():
+    """close() delegates to underlying client."""
+    from revospeech.tts.revolab_engine import RevolabTTS
+
+    engine = RevolabTTS.__new__(RevolabTTS)
+    engine.model_name = "test"
+    engine.device = "cpu"
+
+    closed = [False]
+
+    class _MockClient:
+        def close(self):
+            closed[0] = True
+
+    engine._client = _MockClient()
+    engine.close()
+    assert closed[0]
