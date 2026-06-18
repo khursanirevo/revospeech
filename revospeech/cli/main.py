@@ -39,6 +39,21 @@ def _status_text(status: str) -> str:
     return click.style(f"{icon} {status}", fg=color)
 
 
+def _installed_status_text(is_installed: bool) -> str:
+    """Format an installed/not-installed indicator for catalog listing.
+
+    When color is disabled (non-TTY or NO_COLOR set), returns plain text
+    ``"installed"`` or ``"not installed"`` without icon or color.
+    """
+    if is_installed:
+        if not _use_color():
+            return "✓ installed"
+        return click.style("✓ installed", fg="green")
+    if not _use_color():
+        return "↓ not installed"
+    return click.style("↓ not installed", fg="yellow")
+
+
 @click.group()
 @click.version_option()
 @click.option("--verbose", "-v", is_flag=True, help="Enable debug logging.")
@@ -631,7 +646,11 @@ def config_show_api_key() -> None:
 @click.option("--task", "-t", help="Filter by task type (asr or tts)")
 def catalog_list(task: str | None) -> None:
     """List models available in the remote catalog."""
-    from revospeech.catalog import get_catalog_repo, list_catalog
+    from revospeech.catalog import (
+        catalog_installed_status,
+        get_catalog_repo,
+        list_catalog,
+    )
 
     click.echo(f"Fetching catalog from {get_catalog_repo()}...")
     try:
@@ -644,14 +663,24 @@ def catalog_list(task: str | None) -> None:
         click.echo("No models found in catalog.")
         return
 
+    try:
+        installed_map = catalog_installed_status()
+    except Exception:
+        # Network/catalog failures should not break listing.
+        installed_map = {}
+
     click.echo(
-        f"{'Name':<20} {'Task':<6} {'Backend':<15} {'Language':<12} {'Version':<12}"
+        f"{'Name':<20} {'Task':<6} {'Backend':<15} {'Language':<12} "
+        f"{'Version':<12} {'Status'}"
     )
-    click.echo("-" * 65)
+    click.echo("-" * 80)
     for m in results:
         rev = m.revision or "latest"
+        is_installed = installed_map.get(m.name, False)
+        status_text = _installed_status_text(is_installed)
         click.echo(
-            f"{m.name:<20} {m.task:<6} {m.backend:<15} {m.language:<12} {rev:<12}"
+            f"{m.name:<20} {m.task:<6} {m.backend:<15} {m.language:<12} "
+            f"{rev:<12} {status_text}"
         )
     click.echo("\nUse 'revos catalog pull <name>' to install.")
 
@@ -711,6 +740,34 @@ def catalog_search(query, task, language) -> None:
 
     for m in matches:
         click.echo(f"  {m.name:<25} {m.task:<6} {m.description or ''}")
+
+
+@catalog.command("recommend")
+@click.option("--task", "-t", help="Filter by task (asr/tts)")
+@click.option("--language", "-l", help="Filter by language code (e.g. en, fr)")
+def catalog_recommend(task: str | None, language: str | None) -> None:
+    """Show recommended models (top 3 by size)."""
+    from revospeech.catalog import recommend_models
+
+    try:
+        results = recommend_models(task=task, language=language)
+    except RuntimeError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
+
+    if not results:
+        click.echo("No matching models found.")
+        return
+
+    click.echo(f"Top {len(results)} recommended models:")
+    click.echo()
+    for i, m in enumerate(results, 1):
+        size = f"{m.size_mb:.0f} MB" if m.size_mb else "—"
+        click.echo(
+            f"  {i}. {m.name:<20} {m.task:<6} {size:>10}  {m.language or '—':<12}"
+        )
+    click.echo()
+    click.echo("Install with: revospeech catalog pull <name>")
 
 
 def _get_version() -> str:
