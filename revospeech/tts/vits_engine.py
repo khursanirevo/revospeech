@@ -242,3 +242,24 @@ class VitsTTS(BaseTTS):
             audio.save(output_path)
 
         return audio
+
+    def synthesize_streaming(self, text: str, **kwargs):
+        """Stream synthesis: split text into sentences and yield one Audio per chunk.
+
+        This is chunk-based streaming (not token-level). Useful for:
+        - Starting playback before full synthesis completes
+        - Pipelines that consume audio incrementally
+
+        Args:
+            text: Text to synthesize.
+            **kwargs: Passed to synthesize() (speed, speaker, etc.)
+
+        Yields:
+            Audio: One Audio object per sentence chunk.
+        """
+        from revospeech.tts.base import DEFAULT_MAX_CHARS, _split_text
+
+        chunks = _split_text(text, max_chars=DEFAULT_MAX_CHARS)
+        for chunk in chunks:
+            audio = self.synthesize(chunk, **kwargs)
+            yield audio

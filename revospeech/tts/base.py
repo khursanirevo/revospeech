@@ -123,15 +123,22 @@ class BaseTTS(ABC):
     def synthesize_streaming(self, text: str, **kwargs):
         """Stream synthesis of text to audio.
 
-        Override in subclasses that support streaming synthesis.
-        The default implementation raises NotImplementedError.
+        Override in subclasses that support streaming synthesis. The
+        default implementation raises NotImplementedError.
+
+        Concrete engines (e.g. RevoVoiceTTS, VitsTTS) provide chunk-based
+        streaming: text is split into sentence chunks at sentence boundaries
+        (via ``_split_text``) and ``synthesize`` is called per chunk,
+        yielding one ``Audio`` per chunk. This allows callers to begin
+        playback or downstream processing before all synthesis completes.
 
         Args:
             text: Text to synthesize.
-            **kwargs: Engine-specific streaming options.
+            **kwargs: Engine-specific streaming options. For chunk-based
+                implementations these are forwarded to ``synthesize``.
 
         Raises:
-            NotImplementedError: This engine does not support streaming.
+            NotImplementedError: If this engine does not override streaming.
         """
         raise NotImplementedError("This engine does not support streaming synthesis")
 
