@@ -1,16 +1,35 @@
 """RevoSpeech ASR — Automatic Speech Recognition.
 
 Usage:
-    from revospeech.asr import ASR
+    >>> from revospeech.asr import ASR
+    >>>
+    >>> # Auto-select smallest ready ASR model
+    >>> asr = ASR()
+    >>>
+    >>> # Or specify explicitly
+    >>> asr = ASR('zipformer-v2')
+    >>>
+    >>> result = asr.transcribe('audio.wav')
+    >>> print(result.text)
+    >>> print(result.duration)  # audio duration in seconds
+    >>>
+    >>> # Save transcript in different formats
+    >>> result.save('out.srt')  # or .vtt, .json, .txt
+    >>>
+    >>> # Batch processing
+    >>> report = asr.transcribe_batch(['a.wav', 'b.wav'])
+    >>> report.save('results.json')
 
-    asr = ASR('zipformer-v2')
-    result = asr.transcribe('audio.wav')
-    print(result.text)
+BytesIO support for in-memory audio:
+    >>> import io
+    >>> buf = io.BytesIO(wav_bytes)
+    >>> result = asr.transcribe(buf)
 """
 
 from __future__ import annotations
 
 import logging
+from typing import overload
 
 from revospeech.config import set_api_key
 from revospeech.exceptions import RevosModelError
@@ -22,6 +41,26 @@ from .base import BaseASR
 from .result import Segment, Transcript
 
 logger = logging.getLogger(__name__)
+
+
+@overload
+def ASR(
+    model_name: None = None,
+    *,
+    device: str = "auto",
+    api_key: str | None = None,
+    auto_download: bool = True,
+) -> BaseASR: ...
+
+
+@overload
+def ASR(
+    model_name: str,
+    *,
+    device: str = "auto",
+    api_key: str | None = None,
+    auto_download: bool = True,
+) -> BaseASR: ...
 
 
 def ASR(

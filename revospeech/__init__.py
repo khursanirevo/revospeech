@@ -1,8 +1,17 @@
 """RevoSpeech — A unified Python library for speech AI.
 
 Quick start:
-    from revospeech.asr import ASR
-    from revospeech.tts import TTS
+    >>> from revospeech import ASR, TTS
+    >>>
+    >>> # Transcribe (auto-selects smallest ready model)
+    >>> result = ASR().transcribe('meeting.wav')
+    >>> print(result.text)
+    >>>
+    >>> # Synthesize
+    >>> audio = TTS().synthesize('Hello, world!')
+    >>> audio.save('out.wav')
+
+See https://github.com/khursanirevo/revospeech for full docs.
 """
 
 try:

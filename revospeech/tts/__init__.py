@@ -1,16 +1,51 @@
 """RevoSpeech TTS — Text-to-Speech.
 
 Usage:
-    from revospeech.tts import TTS
+    >>> from revospeech.tts import TTS
+    >>>
+    >>> # Auto-select smallest ready TTS model
+    >>> tts = TTS()
+    >>>
+    >>> # Or specify explicitly
+    >>> tts = TTS('revovoice')
+    >>>
+    >>> # Basic synthesis
+    >>> audio = tts.synthesize('Hello, how are you?')
+    >>> audio.save('greeting.wav')
+    >>>
+    >>> # Voice cloning with reference audio
+    >>> audio = tts.synthesize(
+    ...     'This will sound like the reference speaker.',
+    ...     ref_audio='speaker.wav',
+    ...     ref_text='Sample of the speaker talking.',
+    ... )
+    >>>
+    >>> # Long text auto-splits into chunks
+    >>> audio = tts.synthesize_long(open('script.txt').read())
+    >>>
+    >>> # Batch synthesis with output directory
+    >>> report = tts.synthesize_batch(
+    ...     ['Hello.', 'World.'],
+    ...     output_dir='output/',
+    ... )
+    >>>
+    >>> # Playback (requires sounddevice)
+    >>> audio = tts.synthesize('Play this immediately.')
+    >>> audio.play()  # blocking
 
-    tts = TTS('revovoice')
-    audio = tts.synthesize('Hello, world!')
-    audio.save('output.wav')
+BytesIO round-trip with ASR:
+    >>> import io
+    >>> from revospeech.asr import ASR
+    >>> buf = io.BytesIO()
+    >>> tts.synthesize('Test sentence.').save(buf)
+    >>> buf.seek(0)
+    >>> ASR().transcribe(buf).text
 """
 
 from __future__ import annotations
 
 import logging
+from typing import overload
 
 from revospeech.config import set_api_key
 from revospeech.exceptions import RevosModelError
@@ -22,6 +57,26 @@ from .base import BaseTTS
 from .result import Audio
 
 logger = logging.getLogger(__name__)
+
+
+@overload
+def TTS(
+    model_name: None = None,
+    *,
+    device: str = "auto",
+    api_key: str | None = None,
+    auto_download: bool = True,
+) -> BaseTTS: ...
+
+
+@overload
+def TTS(
+    model_name: str,
+    *,
+    device: str = "auto",
+    api_key: str | None = None,
+    auto_download: bool = True,
+) -> BaseTTS: ...
 
 
 def TTS(

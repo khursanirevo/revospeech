@@ -1,4 +1,24 @@
-"""ASR result data classes."""
+"""ASR result types: Transcript, Segment, BatchReport, BatchResult.
+
+Example:
+    >>> from revospeech.asr import ASR
+    >>> result = ASR().transcribe('audio.wav')
+    >>>
+    >>> # Transcript properties
+    >>> result.text              # full text
+    >>> result.language          # detected language
+    >>> result.duration          # audio duration in seconds
+    >>>
+    >>> # Segment-level access
+    >>> for seg in result.segments:
+    ...     print(f'[{seg.start:.1f}-{seg.end:.1f}] {seg.text}')
+    ...
+    >>> # Save in various formats
+    >>> result.save('out.srt')   # also: .vtt, .json, .txt
+    >>>
+    >>> # Repr
+    >>> repr(result)  # Transcript(text='...', duration=12.3, segments=5)
+"""
 
 from __future__ import annotations
 

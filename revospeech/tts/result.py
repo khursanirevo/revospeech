@@ -1,4 +1,28 @@
-"""TTS result data classes."""
+"""TTS result type: Audio.
+
+Example:
+    >>> from revospeech.tts import TTS
+    >>> audio = TTS().synthesize('Hello, world!')
+    >>>
+    >>> # Properties
+    >>> audio.samples         # numpy array of float32
+    >>> audio.sample_rate     # 22050 or similar
+    >>> audio.duration        # len(samples) / sample_rate
+    >>>
+    >>> # Save to file
+    >>> audio.save('out.wav')
+    >>>
+    >>> # Concatenate multiple clips
+    >>> from revospeech.tts.result import Audio
+    >>> combined = Audio.concatenate([audio1, audio2], silence_duration=0.2)
+    >>>
+    >>> # Playback (requires sounddevice)
+    >>> audio.play()    # blocking
+    >>> audio.play(block=False)  # non-blocking
+    >>>
+    >>> # Repr
+    >>> repr(audio)  # Audio(duration=2.34s, sample_rate=22050)
+"""
 
 from __future__ import annotations
 
