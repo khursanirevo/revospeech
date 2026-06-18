@@ -235,3 +235,90 @@ def test_search_command_no_results(runner: CliRunner):
         assert "No models matching" in result.output
     finally:
         _models.clear()
+
+
+def test_models_command_json_output(runner: CliRunner):
+    """revos models --json outputs structured JSON."""
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register
+
+    _models.clear()
+    register(
+        ModelManifest(
+            name="test-model",
+            task="asr",
+            backend="sherpa-onnx",
+            model_type="transducer",
+            model_url="",
+            sample_rate=16000,
+            language="en",
+            description="Test",
+            files={},
+        )
+    )
+    try:
+        import json
+
+        result = runner.invoke(cli, ["models", "--json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert isinstance(data, list)
+        assert data[0]["name"] == "test-model"
+        assert data[0]["task"] == "asr"
+    finally:
+        _models.clear()
+
+
+def test_models_command_filter_by_task(runner: CliRunner):
+    """revos models --task asr filters to only ASR models."""
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register
+
+    _models.clear()
+    register(
+        ModelManifest(
+            name="asr-model",
+            task="asr",
+            backend="sherpa-onnx",
+            model_type="transducer",
+            model_url="",
+            sample_rate=16000,
+            language="en",
+            description="ASR",
+            files={},
+        )
+    )
+    register(
+        ModelManifest(
+            name="tts-model",
+            task="tts",
+            backend="vits",
+            model_type="vits",
+            model_url="",
+            sample_rate=22050,
+            language="en",
+            description="TTS",
+            files={},
+        )
+    )
+    try:
+        result = runner.invoke(cli, ["models", "--task", "asr"])
+        assert result.exit_code == 0
+        assert "asr-model" in result.output
+        assert "tts-model" not in result.output
+    finally:
+        _models.clear()
+
+
+def test_models_command_empty_with_suggestion(runner: CliRunner):
+    """revos models shows suggestion when no models match."""
+    from revospeech.registry.registry import _models
+
+    _models.clear()
+    try:
+        result = runner.invoke(cli, ["models", "--task", "nonexistent"])
+        assert result.exit_code == 0
+        assert "No models found" in result.output
+        assert "catalog list" in result.output
+    finally:
+        _models.clear()
