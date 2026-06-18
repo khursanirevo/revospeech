@@ -27,7 +27,24 @@ def __getattr__(name: str):
         from revospeech.logging_config import configure_logging
 
         return configure_logging
+    if name == "check_model":
+        from revospeech.registry.status import check_model
+
+        return check_model
     raise AttributeError(f"module 'revospeech' has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:
+    """Support tab-completion for lazy imports."""
+    return [
+        "ASR",
+        "TTS",
+        "configure_logging",
+        "list_models",
+        "search_models",
+        "check_model",
+        "__version__",
+    ]
 
 
 def list_models(
@@ -87,4 +104,5 @@ __all__ = [
     "configure_logging",
     "list_models",
     "search_models",
+    "check_model",
 ]
