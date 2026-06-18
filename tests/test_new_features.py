@@ -250,9 +250,7 @@ def test_tts_synthesize_batch_with_output(tmp_path):
 
     class FakeTTS(BaseTTS):
         def synthesize(self, text, output_path=None, **kw):
-            audio = Audio(
-                samples=np.zeros(100, dtype=np.float32), sample_rate=16000
-            )
+            audio = Audio(samples=np.zeros(100, dtype=np.float32), sample_rate=16000)
             if output_path is not None:
                 audio.save(str(output_path))
             return audio
