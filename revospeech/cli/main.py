@@ -15,8 +15,25 @@ import click
 
 @click.group()
 @click.version_option()
-def cli() -> None:
+@click.option("--verbose", "-v", is_flag=True, help="Enable debug logging.")
+@click.option(
+    "--quiet",
+    "-q",
+    is_flag=True,
+    help="Suppress info logging (warnings only).",
+)
+@click.pass_context
+def cli(ctx, verbose, quiet) -> None:
     """RevoSpeech — A unified library for speech AI (ASR & TTS)."""
+    import logging
+
+    if verbose:
+        logging.getLogger("revospeech").setLevel(logging.DEBUG)
+    elif quiet:
+        logging.getLogger("revospeech").setLevel(logging.WARNING)
+    else:
+        logging.getLogger("revospeech").setLevel(logging.INFO)
+    ctx.ensure_object(dict)
 
 
 @cli.command()
@@ -394,6 +411,46 @@ def catalog_pull(model_name: str) -> None:
 
     click.echo(f"Installed to {dest}")
     click.echo(f"Use: from revospeech.tts import TTS; TTS('{model_name}')")
+
+
+@catalog.command("search")
+@click.argument("query")
+@click.option("--task", "-t", help="Filter by task (asr/tts)")
+@click.option("--language", "-l", help="Filter by language code")
+def catalog_search(query, task, language) -> None:
+    """Search the remote catalog by name, language, or task."""
+    from revospeech.catalog import list_catalog
+
+    models = list_catalog()
+    query_lower = query.lower()
+    matches = []
+    for m in models:
+        name = m.name.lower()
+        desc = (m.description or "").lower()
+        langs = [lang.lower() for lang in (m.languages or [])]
+        tags = [tag.lower() for tag in (m.tags or [])]
+        m_task = (m.task or "").lower()
+
+        if task and m.task != task:
+            continue
+        if language and language.lower() not in langs:
+            continue
+
+        if (
+            query_lower in name
+            or query_lower in desc
+            or query_lower in " ".join(langs)
+            or query_lower in " ".join(tags)
+            or query_lower in m_task
+        ):
+            matches.append(m)
+
+    if not matches:
+        click.echo("No models found.")
+        return
+
+    for m in matches:
+        click.echo(f"  {m.name:<25} {m.task:<6} {m.description or ''}")
 
 
 def _get_version() -> str:
