@@ -253,3 +253,199 @@ def test_tts_unsupported_backend():
 
     with pytest.raises(ValueError, match="Supported backends: revovoice, vits"):
         TTS("bad-backend")
+
+
+# ---------------------------------------------------------------------------
+# TTS factory: auto-select, API-mode, did-you-mean (covers tts/__init__.py)
+# ---------------------------------------------------------------------------
+def test_tts_with_api_key_persists(monkeypatch):
+    """Passing api_key to TTS() should persist it via set_api_key."""
+    captured = []
+    monkeypatch.setattr(
+        "revospeech.tts.set_api_key", lambda key: captured.append(key)
+    )
+    _register_vits()
+    from revospeech.tts import TTS
+
+    TTS("test-vits", api_key="rv-test12345")
+    assert captured == ["rv-test12345"]
+
+
+def test_tts_auto_select_no_models_registered():
+    """No model_name + no registered TTS models → RevosModelError with catalog hint."""
+    from revospeech.exceptions import RevosModelError
+    from revospeech.tts import TTS
+
+    with pytest.raises(RevosModelError, match="No TTS model specified") as exc:
+        TTS()
+    assert "catalog list" in exc.value.suggestion
+
+
+def test_tts_auto_select_no_ready_models_with_available(monkeypatch):
+    """No ready models, but some are registered → suggestion lists them."""
+    from revospeech.registry.status import ModelStatus
+    from revospeech.tts import TTS
+
+    def fake_list(**kw):
+        if kw.get("status") == "ready":
+            return []
+        return [
+            ModelStatus(
+                name="not-ready-tts",
+                task="tts",
+                mode="local",
+                status="needs-download",
+                installed=False,
+                size_mb=50.0,
+                capabilities=[],
+                languages=["en"],
+            )
+        ]
+
+    monkeypatch.setattr("revospeech.tts.list_model_statuses", fake_list)
+
+    from revospeech.exceptions import RevosModelError
+
+    with pytest.raises(RevosModelError) as exc:
+        TTS()
+    assert "Download a model first" in exc.value.suggestion
+    assert "not-ready-tts" in exc.value.suggestion
+
+
+def test_tts_auto_select_smallest_ready(monkeypatch):
+    """Auto-select picks the smallest ready model by size_mb."""
+    from revospeech.registry.registry import register
+    from revospeech.registry.status import ModelStatus
+
+    register(
+        ModelManifest(
+            name="big-tts",
+            task="tts",
+            backend="vits",
+            model_type="vits",
+            model_url="",
+            sample_rate=22050,
+            language="en",
+            description="",
+            size_mb=200.0,
+            files={},
+        )
+    )
+    register(
+        ModelManifest(
+            name="small-tts",
+            task="tts",
+            backend="vits",
+            model_type="vits",
+            model_url="",
+            sample_rate=22050,
+            language="en",
+            description="",
+            size_mb=50.0,
+            files={},
+        )
+    )
+
+    fake_statuses = [
+        ModelStatus(
+            name="big-tts",
+            task="tts",
+            mode="local",
+            status="ready",
+            installed=True,
+            size_mb=200.0,
+            capabilities=[],
+            languages=["en"],
+        ),
+        ModelStatus(
+            name="small-tts",
+            task="tts",
+            mode="local",
+            status="ready",
+            installed=True,
+            size_mb=50.0,
+            capabilities=[],
+            languages=["en"],
+        ),
+    ]
+    monkeypatch.setattr(
+        "revospeech.tts.list_model_statuses",
+        lambda **kw: fake_statuses,
+    )
+
+    captured = []
+    monkeypatch.setattr(
+        "revospeech.tts.vits_engine.VitsTTS",
+        lambda *a, **kw: captured.append(a[0]) or MagicMock(),
+    )
+
+    from revospeech.tts import TTS
+
+    TTS()
+    assert captured == ["small-tts"]
+
+
+def test_tts_unknown_model_with_did_you_mean():
+    """Unknown model name triggers KeyError with did-you-mean hint."""
+    _register_vits()
+    from revospeech.tts import TTS
+
+    with pytest.raises(KeyError, match="not found"):
+        TTS("test-vit")
+
+
+def test_tts_api_mode_no_key_raises_config_error(monkeypatch):
+    """API-mode model without API key → RevosConfigError."""
+    from revospeech.registry.registry import register
+
+    register(
+        ModelManifest(
+            name="api-tts",
+            task="tts",
+            backend="revolab",
+            model_type="revolab",
+            model_url="",
+            sample_rate=22050,
+            language="en",
+            description="API TTS",
+            mode="api",
+            files={},
+        )
+    )
+    monkeypatch.setattr(
+        "revospeech.config.get_api_key", lambda *a, **kw: None
+    )
+
+    from revospeech.exceptions import RevosConfigError
+    from revospeech.tts import TTS
+
+    with pytest.raises(RevosConfigError, match="requires an API key"):
+        TTS("api-tts")
+
+
+def test_tts_api_mode_with_key_raises_not_implemented(monkeypatch):
+    """API-mode model with key set → NotImplementedError (engine pending)."""
+    from revospeech.registry.registry import register
+
+    register(
+        ModelManifest(
+            name="api-tts",
+            task="tts",
+            backend="revolab",
+            model_type="revolab",
+            model_url="",
+            sample_rate=22050,
+            language="en",
+            description="API TTS",
+            mode="api",
+            files={},
+        )
+    )
+    monkeypatch.setattr(
+        "revospeech.config.get_api_key", lambda *a, **kw: "rv-test12345"
+    )
+
+    from revospeech.tts import TTS
+
+    with pytest.raises(NotImplementedError, match="not yet implemented"):
+        TTS("api-tts")
