@@ -148,3 +148,144 @@ def test_revolab_tts_fetch_audio_malformed():
 
     with pytest.raises(RevosEngineError, match="Malformed"):
         engine._fetch_audio({"unexpected_key": "value"})
+
+
+def _build_client_with_mock_http(monkeypatch):
+    """Build a RevolabClient with a mock httpx Client for retry testing.
+
+    Tests patch ``client._client.request`` to return canned responses.
+    """
+    from revospeech.http_client import RevolabClient
+
+    monkeypatch.setattr(
+        "revospeech.http_client.get_api_key", lambda *a, **kw: "rv-test12345678"
+    )
+    try:
+        client = RevolabClient("https://api.example.com")
+    except ImportError:
+        pytest.skip("httpx not installed")
+
+    class _MockResponse:
+        def __init__(self, status_code, json_data=None, content=b""):
+            self.status_code = status_code
+            self._json = json_data
+            self.content = content
+
+        def json(self):
+            return self._json or {}
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise client._httpx.HTTPStatusError(
+                    "mock error", request=None, response=self
+                )
+
+    client._MockResponse = _MockResponse
+    return client
+
+
+def test_request_success_returns_json(monkeypatch):
+    """Successful POST returns parsed JSON."""
+    client = _build_client_with_mock_http(monkeypatch)
+    response = client._MockResponse(200, json_data={"text": "hi"})
+    client._client.request = lambda *a, **kw: response
+
+    result = client.post("/asr/transcribe", json={"audio": "x"})
+    assert result == {"text": "hi"}
+    client.close()
+
+
+def test_request_401_raises_config_error(monkeypatch):
+    """HTTP 401 → RevosConfigError with actionable suggestion."""
+    from revospeech.exceptions import RevosConfigError
+
+    client = _build_client_with_mock_http(monkeypatch)
+    response = client._MockResponse(401)
+    client._client.request = lambda *a, **kw: response
+
+    with pytest.raises(RevosConfigError, match="401"):
+        client.get("/asr/result")
+    client.close()
+
+
+def test_request_429_retries_then_raises(monkeypatch):
+    """HTTP 429 retries max_retries times, then raises RevosEngineError."""
+    from revospeech.exceptions import RevosEngineError
+
+    client = _build_client_with_mock_http(monkeypatch)
+    client.max_retries = 2  # speed up test
+    response = client._MockResponse(429)
+    client._client.request = lambda *a, **kw: response
+
+    with pytest.raises(RevosEngineError, match="Rate limit"):
+        client.post("/asr/transcribe")
+    client.close()
+
+
+def test_request_5xx_retries_then_raises(monkeypatch):
+    """HTTP 500 retries, then raises RevosEngineError."""
+    from revospeech.exceptions import RevosEngineError
+
+    client = _build_client_with_mock_http(monkeypatch)
+    client.max_retries = 2
+    response = client._MockResponse(503)
+    client._client.request = lambda *a, **kw: response
+
+    with pytest.raises(RevosEngineError, match="Server error"):
+        client.post("/asr/transcribe")
+    client.close()
+
+
+def test_request_network_error_retries(monkeypatch):
+    """Network errors are retried, then raise RevosEngineError."""
+    from revospeech.exceptions import RevosEngineError
+
+    client = _build_client_with_mock_http(monkeypatch)
+    client.max_retries = 2
+
+    def always_fail(*a, **kw):
+        raise client._httpx.HTTPError("network down")
+
+    client._client.request = always_fail
+
+    with pytest.raises(RevosEngineError, match="Network error"):
+        client.post("/asr/transcribe")
+    client.close()
+
+
+def test_client_context_manager(monkeypatch):
+    """Client supports `with` statement and closes on exit."""
+    from revospeech.http_client import RevolabClient
+
+    monkeypatch.setattr(
+        "revospeech.http_client.get_api_key", lambda *a, **kw: "rv-test12345678"
+    )
+    try:
+        with RevolabClient("https://api.example.com") as client:
+            assert client.api_key == "rv-test12345678"
+    except ImportError:
+        pytest.skip("httpx not installed")
+
+
+def test_get_raw_returns_bytes(monkeypatch):
+    """get_raw returns response bytes for binary downloads."""
+    client = _build_client_with_mock_http(monkeypatch)
+    response = client._MockResponse(200, content=b"audio bytes")
+    client._client.request = lambda *a, **kw: response
+
+    result = client.get_raw("/audio/123")
+    assert result == b"audio bytes"
+    client.close()
+
+
+def test_request_403_raises_config_error(monkeypatch):
+    """HTTP 403 → RevosConfigError with permission suggestion."""
+    from revospeech.exceptions import RevosConfigError
+
+    client = _build_client_with_mock_http(monkeypatch)
+    response = client._MockResponse(403)
+    client._client.request = lambda *a, **kw: response
+
+    with pytest.raises(RevosConfigError, match="403"):
+        client.get("/asr/result")
+    client.close()
