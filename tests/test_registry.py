@@ -116,3 +116,76 @@ def test_register_overwrites():
     register(m1)
     register(m2)
     assert get("x", "asr").description == "v2"
+
+
+# ---------------------------------------------------------------------------
+# _load_manifests_from_dir — directory scanning + error tolerance
+# ---------------------------------------------------------------------------
+def test_load_manifests_from_dir_loads_yaml(tmp_path):
+    """Valid YAML manifests in a directory are loaded."""
+    from revospeech.registry.registry import _load_manifests_from_dir
+
+    manifest_data = {
+        "name": "from-disk",
+        "task": "asr",
+        "backend": "sherpa-onnx",
+        "model_type": "transducer",
+        "model_url": "http://example.com/m.tar.bz2",
+        "sample_rate": 16000,
+        "language": "en",
+        "description": "",
+    }
+    (tmp_path / "good.yaml").write_text(yaml.dump(manifest_data))
+
+    _load_manifests_from_dir(tmp_path)
+    assert get("from-disk", "asr").sample_rate == 16000
+
+
+def test_load_manifests_from_dir_loads_yml(tmp_path):
+    """.yml extension is also picked up."""
+    from revospeech.registry.registry import _load_manifests_from_dir
+
+    manifest_data = {
+        "name": "yml-model",
+        "task": "asr",
+        "backend": "sherpa-onnx",
+        "model_type": "transducer",
+        "model_url": "",
+        "sample_rate": 16000,
+        "language": "en",
+        "description": "",
+    }
+    (tmp_path / "model.yml").write_text(yaml.dump(manifest_data))
+
+    _load_manifests_from_dir(tmp_path)
+    assert get("yml-model", "asr").backend == "sherpa-onnx"
+
+
+def test_load_manifests_from_dir_skips_broken(tmp_path):
+    """Broken YAML is logged and skipped, valid sibling is still loaded."""
+    from revospeech.registry.registry import _load_manifests_from_dir
+
+    (tmp_path / "broken.yaml").write_text("not: valid: yaml: [")
+
+    good = {
+        "name": "sibling",
+        "task": "asr",
+        "backend": "sherpa-onnx",
+        "model_type": "transducer",
+        "model_url": "",
+        "sample_rate": 16000,
+        "language": "en",
+        "description": "",
+    }
+    (tmp_path / "good.yaml").write_text(yaml.dump(good))
+
+    _load_manifests_from_dir(tmp_path)
+    assert get("sibling", "asr").sample_rate == 16000
+
+
+def test_load_manifests_from_dir_missing_dir_is_noop(tmp_path):
+    """Non-existent directory is silently skipped."""
+    from revospeech.registry.registry import _load_manifests_from_dir
+
+    _load_manifests_from_dir(tmp_path / "does-not-exist")
+    assert list_models() == []

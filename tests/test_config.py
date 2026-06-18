@@ -76,3 +76,30 @@ def test_set_api_key_preserves_existing_config(isolated_config, monkeypatch):
     loaded = config_mod.load_config()
     assert loaded["api_key"] == "rv-new"
     assert loaded["other_key"] == "preserve-me"
+
+
+def test_save_config_failure_re_raises_and_cleans_tmp(isolated_config, monkeypatch):
+    """save_config re-raises after dumping fails and removes the tmp file."""
+    import yaml
+
+    def boom(*a, **kw):
+        raise RuntimeError("disk full")
+
+    monkeypatch.setattr(yaml, "safe_dump", boom)
+
+    with pytest.raises(RuntimeError, match="disk full"):
+        config_mod.save_config({"api_key": "x"})
+
+
+def test_load_config_logs_warning_on_unexpected_error(isolated_config, monkeypatch):
+    """load_config returns {} and logs when an unexpected error occurs."""
+    import yaml
+
+    def boom(*a, **kw):
+        raise RuntimeError("disk error")
+
+    isolated_config.parent.mkdir(parents=True, exist_ok=True)
+    isolated_config.write_text("key: value\n")
+    monkeypatch.setattr(yaml, "safe_load", boom)
+
+    assert config_mod.load_config() == {}
