@@ -23,6 +23,32 @@ class BaseASR(ABC):
             "This engine does not support streaming transcription"
         )
 
+    def detect_language(self, audio_path: str | Path | Any) -> str:
+        """Detect the dominant language of audio.
+
+        Default returns the model's manifest language. Subclasses with
+        proper detection (e.g., Whisper-based) should override.
+        """
+        from revospeech.registry import get
+
+        try:
+            manifest = get(self.model_name, "asr")
+            return manifest.language or "en"
+        except KeyError:
+            return "en"
+
+    def list_languages(self) -> list[str]:
+        """Return supported language codes for this engine."""
+        from revospeech.registry import get
+
+        try:
+            manifest = get(self.model_name, "asr")
+            if manifest.languages:
+                return list(manifest.languages)
+            return [manifest.language or "en"]
+        except KeyError:
+            return ["en"]
+
     @abstractmethod
     def transcribe(self, audio_path: str | Path | Any) -> Transcript: ...
 
