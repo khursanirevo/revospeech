@@ -86,3 +86,10 @@ revospeech catalog list         # browse remote catalog
 revospeech catalog recommend    # get recommendations
 revospeech search "english"     # fuzzy search
 ```
+
+## See also
+
+- [CLI reference](cli.md) — every command and flag
+- [Configuration](configuration.md) — API keys, cache, catalog source
+- [Extension guide](extension.md) — adding custom models and backends
+- [API reference](api.md) — full Python API

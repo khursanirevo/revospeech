@@ -68,3 +68,9 @@ CLI uses color when stdout is a TTY. Disable with:
 export NO_COLOR=1
 revospeech models  # plain text
 ```
+
+## See also
+
+- [CLI reference](cli.md) — every command
+- [Quickstart](quickstart.md) — getting started flow
+- [Extension guide](extension.md) — adding custom models

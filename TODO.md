@@ -329,7 +329,7 @@
 
 - [x] Set up mkdocs-material + mkdocstrings
 - [x] One page per class — split into `docs/api/{asr,tts,registry,cli,results}.md`
-- [ ] Cross-linked "See also" references
+- [x] Cross-linked "See also" references — present on all api/* pages + top-level docs pages
 
 **CLI discoverability**
 
@@ -378,7 +378,7 @@
 - [x] Test install from clean venv: `pip install revospeech[all]` — verified via `uv build` + clean venv install
 - [x] Verify CLI entry point works post-install — `revospeech --version` returns `0.1.1`
 - [ ] Publish to TestPyPI → verify → publish to PyPI (**BLOCKED** — pending release window)
-- [ ] Set up docs site (GitHub Pages or Read the Docs) — mkdocs-material configured; deploy workflow needs `pages:` push trigger (currently builds on CI only)
+- [x] Set up docs site (GitHub Pages or Read the Docs) — `.github/workflows/docs.yml` builds + deploys on master push
 
 ---
 

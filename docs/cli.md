@@ -82,3 +82,9 @@ revospeech info                   # version, device, cache size
 ```bash
 revospeech search "english fast"  # fuzzy model search
 ```
+
+## See also
+
+- [Quickstart](quickstart.md) — 60-second getting started
+- [Configuration](configuration.md) — env vars, API keys, cache
+- [API reference](api/cli.md) — CLI internals
