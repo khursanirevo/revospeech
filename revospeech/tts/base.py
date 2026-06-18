@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+
+from revospeech.asr.result import BatchReport, BatchResult
 
 from .result import Audio
 
@@ -134,7 +139,7 @@ class BaseTTS(ABC):
     def synthesize(
         self,
         text: str,
-        output_path: str | None = None,
+        output_path: str | Path | None = None,
         *,
         speed: float = 1.0,
         ref_audio: str | None = None,
@@ -157,7 +162,7 @@ class BaseTTS(ABC):
     def synthesize_long(
         self,
         text: str,
-        output_path: str | None = None,
+        output_path: str | Path | None = None,
         *,
         max_chars: int = DEFAULT_MAX_CHARS,
         silence_duration: float = 0.1,
@@ -209,3 +214,74 @@ class BaseTTS(ABC):
             logger.info("Saved long audio (%.1fs) to %s", result.duration, output_path)
 
         return result
+
+    def synthesize_batch(
+        self,
+        texts: list[str],
+        output_dir: str | Path | None = None,
+        *,
+        max_workers: int = 4,
+        on_error: str = "continue",
+        **kwargs,
+    ) -> BatchReport:
+        """Synthesize multiple texts in parallel.
+
+        Args:
+            texts: List of text strings to synthesize.
+            output_dir: Optional directory to save audio files
+                (audio_0.wav, audio_1.wav, ...).
+            max_workers: Number of parallel threads.
+            on_error: "continue" (skip failures) or "raise" (fail fast).
+            **kwargs: Passed to synthesize() (speed, speaker, etc.)
+
+        Returns:
+            BatchReport with per-item results and summary.
+        """
+        out_dir = Path(output_dir) if output_dir is not None else None
+        if out_dir is not None:
+            out_dir.mkdir(parents=True, exist_ok=True)
+
+        results: dict[int, BatchResult] = {}
+
+        def _process(idx: int, text: str) -> tuple[int, BatchResult]:
+            t0 = time.perf_counter()
+            try:
+                if out_dir is not None:
+                    out_path = out_dir / f"audio_{idx}.wav"
+                else:
+                    out_path = None
+                audio = self.synthesize(text, out_path, **kwargs)
+                elapsed = time.perf_counter() - t0
+                return idx, BatchResult(
+                    input=text, result=audio, duration=elapsed
+                )
+            except Exception as e:
+                elapsed = time.perf_counter() - t0
+                return idx, BatchResult(
+                    input=text, error=str(e), duration=elapsed
+                )
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(_process, i, text): i
+                for i, text in enumerate(texts)
+            }
+
+            for future in as_completed(futures):
+                idx, result = future.result()
+                results[idx] = result
+
+                if on_error == "raise" and result.error is not None:
+                    executor.shutdown(wait=False, cancel_futures=True)
+                    raise RuntimeError(
+                        f"Batch synthesis failed for item {idx}: {result.error}"
+                    )
+
+        ordered = [results[i] for i in range(len(texts)) if i in results]
+        return BatchReport(
+            items=ordered,
+            total=len(texts),
+            succeeded=sum(1 for r in ordered if r.succeeded),
+            failed=sum(1 for r in ordered if not r.succeeded),
+            total_duration=sum(r.duration for r in ordered),
+        )

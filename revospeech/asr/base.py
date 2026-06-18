@@ -23,7 +23,7 @@ class BaseASR(ABC):
         )
 
     @abstractmethod
-    def transcribe(self, audio_path: str) -> Transcript: ...
+    def transcribe(self, audio_path: str | Path) -> Transcript: ...
 
     def transcribe_batch(
         self,
