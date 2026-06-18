@@ -445,3 +445,122 @@ def test_tts_api_mode_with_key_raises_not_implemented(monkeypatch):
 
     with pytest.raises(NotImplementedError, match="not yet implemented"):
         TTS("api-tts")
+
+
+# ---------------------------------------------------------------------------
+# RevoVoiceTTS: ImportError, device auto, ref_audio, streaming
+# ---------------------------------------------------------------------------
+def _register_revovoice():
+    from revospeech.registry.registry import register
+
+    register(
+        ModelManifest(
+            name="test-tts",
+            task="tts",
+            backend="revovoice",
+            model_type="diffusion",
+            model_url="TestOrg/test-model",
+            sample_rate=24000,
+            language="en",
+            description="Test TTS",
+            files={},
+        )
+    )
+
+
+@patch("revospeech.hf_utils.get_hf_user", return_value=None)
+def test_revovoice_engine_raises_without_omnivoice(mock_hf_user):
+    """Missing omnivoice package → ImportError with install hint."""
+    _register_revovoice()
+    with patch.dict(sys.modules, {"omnivoice": None}):
+        from revospeech.tts.revovoice_engine import RevoVoiceTTS
+
+        with pytest.raises(ImportError, match="pip install revos"):
+            RevoVoiceTTS("test-tts", device="cpu")
+
+
+@patch("revospeech.hf_utils.get_hf_user", return_value=None)
+def test_revovoice_engine_auto_device_cuda(mock_hf_user, monkeypatch):
+    """device='auto' resolves to 'cuda' when CUDA is available."""
+    _register_revovoice()
+    mock_module, _, _ = _make_mock_omnivoice()
+    fake_torch = MagicMock()
+    fake_torch.cuda.is_available.return_value = True
+    with (
+        patch.dict(sys.modules, {"omnivoice": mock_module, "torch": fake_torch}),
+    ):
+        from revospeech.tts.revovoice_engine import RevoVoiceTTS
+
+        engine = RevoVoiceTTS("test-tts", device="auto")
+    assert engine.device == "cuda"
+
+
+@patch("revospeech.hf_utils.get_hf_user", return_value=None)
+def test_revovoice_engine_auto_device_falls_back_when_no_torch(mock_hf_user):
+    """device='auto' falls back to 'cpu' when torch is unavailable."""
+    _register_revovoice()
+    mock_module, _, _ = _make_mock_omnivoice()
+    with patch.dict(sys.modules, {"omnivoice": mock_module, "torch": None}):
+        from revospeech.tts.revovoice_engine import RevoVoiceTTS
+
+        engine = RevoVoiceTTS("test-tts", device="auto")
+    assert engine.device == "cpu"
+
+
+@patch("revospeech.hf_utils.get_hf_user", return_value=None)
+def test_revovoice_engine_synthesize_with_ref_audio(mock_hf_user, tmp_path: Path):
+    """ref_audio and ref_text are forwarded to model.generate."""
+    _register_revovoice()
+    mock_module, _, mock_model = _make_mock_omnivoice()
+    ref = tmp_path / "ref.wav"
+    samples = np.zeros(16000, dtype=np.float32)
+    import soundfile as sf
+
+    sf.write(str(ref), samples, 16000, format="WAV")
+    with patch.dict(sys.modules, {"omnivoice": mock_module}):
+        from revospeech.tts.revovoice_engine import RevoVoiceTTS
+
+        engine = RevoVoiceTTS("test-tts", device="cpu")
+        engine.synthesize("hello", ref_audio=str(ref), ref_text="reference text")
+    expected = {
+        "text": "hello",
+        "speed": 1.0,
+        "ref_audio": str(ref),
+        "ref_text": "reference text",
+    }
+    mock_model.generate.assert_called_once_with(**expected)
+
+
+@patch("revospeech.hf_utils.get_hf_user", return_value=None)
+def test_revovoice_engine_synthesize_non_list_result(mock_hf_user):
+    """Non-list generate() output is coerced via np.array directly."""
+    _register_revovoice()
+    mock_module = ModuleType("omnivoice")
+    mock_cls = MagicMock()
+    mock_model = MagicMock()
+    mock_model.generate.return_value = np.zeros(24000, dtype=np.float32)
+    mock_cls.from_pretrained.return_value = mock_model
+    mock_module.OmniVoice = mock_cls
+    with patch.dict(sys.modules, {"omnivoice": mock_module}):
+        from revospeech.tts.revovoice_engine import RevoVoiceTTS
+
+        engine = RevoVoiceTTS("test-tts", device="cpu")
+        result = engine.synthesize("hello")
+    assert len(result.samples) == 24000
+
+
+@patch("revospeech.hf_utils.get_hf_user", return_value=None)
+def test_revovoice_engine_synthesize_streaming_yields_chunks(mock_hf_user):
+    """synthesize_streaming yields one Audio per text chunk."""
+    _register_revovoice()
+    mock_module, _, _ = _make_mock_omnivoice()
+    with patch.dict(sys.modules, {"omnivoice": mock_module}):
+        from revospeech.tts.revovoice_engine import RevoVoiceTTS
+
+        engine = RevoVoiceTTS("test-tts", device="cpu")
+        text = ". ".join(
+            f"This is sentence number {i} with extra words" for i in range(20)
+        )
+        chunks = list(engine.synthesize_streaming(text))
+    assert len(chunks) > 1
+    assert all(c.sample_rate == 24000 for c in chunks)
