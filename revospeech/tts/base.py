@@ -120,6 +120,28 @@ class BaseTTS(ABC):
         self.model_name = model_name
         self.device = device
 
+    def list_voices(self) -> list[str]:
+        """Return list of available voice/speaker names for this engine.
+
+        Default returns an empty list. Override in subclasses that support
+        multiple speakers (e.g., VITS multi-speaker models).
+        """
+        return []
+
+    def list_capabilities(self) -> list[str]:
+        """Return list of supported capabilities (e.g., 'voice-cloning', 'streaming').
+
+        Pulled from the model manifest if available, otherwise returns
+        engine defaults.
+        """
+        from revospeech.registry import get
+
+        try:
+            manifest = get(self.model_name, "tts")
+            return list(manifest.capabilities or [])
+        except KeyError:
+            return []
+
     def synthesize_streaming(self, text: str, **kwargs):
         """Stream synthesis of text to audio.
 

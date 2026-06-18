@@ -137,6 +137,13 @@ class RevoVoiceTTS(BaseTTS):
 
         return audio
 
+    def list_voices(self) -> list[str]:
+        """RevoVoice uses zero-shot voice cloning, so no fixed voice list.
+
+        Use ref_audio= parameter to clone any voice.
+        """
+        return []
+
     def synthesize_streaming(self, text: str, **kwargs):
         """Stream synthesis: split text into sentences and yield one Audio per chunk.
 

@@ -243,6 +243,10 @@ class VitsTTS(BaseTTS):
 
         return audio
 
+    def list_voices(self) -> list[str]:
+        """Return list of available speakers for this VITS model."""
+        return list(PRODUCTION_SPEAKERS)
+
     def synthesize_streaming(self, text: str, **kwargs):
         """Stream synthesis: split text into sentences and yield one Audio per chunk.
 
