@@ -20,6 +20,20 @@ def _use_color() -> bool:
     return sys.stdout.isatty() and not os.environ.get("NO_COLOR")
 
 
+def _format_error(prefix: str, err: Exception) -> str:
+    """Format an error message with an optional suggestion.
+
+    RevosError subclasses carry an optional ``.suggestion`` attribute that
+    provides an actionable next step. This helper appends it on its own line
+    so the user always sees what to try next.
+    """
+    suggestion = getattr(err, "suggestion", None)
+    msg = f"{prefix}: {err}"
+    if suggestion:
+        msg += f"\n\nSuggestion: {suggestion}"
+    return msg
+
+
 def _status_text(status: str) -> str:
     """Format a status string with icon and optional color.
 
@@ -140,19 +154,28 @@ def transcribe(
             result = asr.transcribe(audio_path)
             _emit_transcript(result, output_format)
         except RevosConfigError as e:
-            click.echo(f"Configuration error: {e}", err=True)
+            click.echo(_format_error("Configuration error", e), err=True)
             raise SystemExit(1)
         except RevosModelError as e:
-            click.echo(f"Model error: {e}", err=True)
+            click.echo(_format_error("Model error", e), err=True)
             raise SystemExit(1)
         except RevosEngineError as e:
-            click.echo(f"Engine error: {e}", err=True)
+            click.echo(_format_error("Engine error", e), err=True)
             raise SystemExit(1)
         except RevosAudioError as e:
-            click.echo(f"Audio error: {e}", err=True)
+            click.echo(_format_error("Audio error", e), err=True)
             raise SystemExit(1)
         except RevosError as e:
-            click.echo(f"Error: {e}", err=True)
+            click.echo(_format_error("Error", e), err=True)
+            raise SystemExit(1)
+        except Exception as e:
+            click.echo(
+                f"Unexpected error ({type(e).__name__}): {e}\n\n"
+                f"Suggestion: re-run with 'revospeech --verbose transcribe ...' "
+                f"for a full traceback, or check 'revospeech models' to verify "
+                f"the model name.",
+                err=True,
+            )
             raise SystemExit(1)
         return
 
@@ -209,19 +232,28 @@ def transcribe(
             else:
                 click.echo(f"FAILED: {item.input}: {item.error}", err=True)
     except RevosConfigError as e:
-        click.echo(f"Configuration error: {e}", err=True)
+        click.echo(_format_error("Configuration error", e), err=True)
         raise SystemExit(1)
     except RevosModelError as e:
-        click.echo(f"Model error: {e}", err=True)
+        click.echo(_format_error("Model error", e), err=True)
         raise SystemExit(1)
     except RevosEngineError as e:
-        click.echo(f"Engine error: {e}", err=True)
+        click.echo(_format_error("Engine error", e), err=True)
         raise SystemExit(1)
     except RevosAudioError as e:
-        click.echo(f"Audio error: {e}", err=True)
+        click.echo(_format_error("Audio error", e), err=True)
         raise SystemExit(1)
     except RevosError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(_format_error("Error", e), err=True)
+        raise SystemExit(1)
+    except Exception as e:
+        click.echo(
+            f"Unexpected error ({type(e).__name__}): {e}\n\n"
+            f"Suggestion: re-run with 'revospeech --verbose transcribe ...' "
+            f"for a full traceback, or check 'revospeech models' to verify "
+            f"the model name.",
+            err=True,
+        )
         raise SystemExit(1)
 
 
@@ -306,19 +338,28 @@ def synthesize(
                 preview = str(item.input)[:60]
                 click.echo(f"  [{status}] {preview}")
         except RevosConfigError as e:
-            click.echo(f"Configuration error: {e}", err=True)
+            click.echo(_format_error("Configuration error", e), err=True)
             raise SystemExit(1)
         except RevosModelError as e:
-            click.echo(f"Model error: {e}", err=True)
+            click.echo(_format_error("Model error", e), err=True)
             raise SystemExit(1)
         except RevosEngineError as e:
-            click.echo(f"Engine error: {e}", err=True)
+            click.echo(_format_error("Engine error", e), err=True)
             raise SystemExit(1)
         except RevosAudioError as e:
-            click.echo(f"Audio error: {e}", err=True)
+            click.echo(_format_error("Audio error", e), err=True)
             raise SystemExit(1)
         except RevosError as e:
-            click.echo(f"Error: {e}", err=True)
+            click.echo(_format_error("Error", e), err=True)
+            raise SystemExit(1)
+        except Exception as e:
+            click.echo(
+                f"Unexpected error ({type(e).__name__}): {e}\n\n"
+                f"Suggestion: re-run with 'revospeech --verbose synthesize ...' "
+                f"for a full traceback, or check 'revospeech models' to verify "
+                f"the model name.",
+                err=True,
+            )
             raise SystemExit(1)
         return
 
@@ -356,19 +397,28 @@ def synthesize(
             f"({len(audio.samples) / audio.sample_rate:.1f}s) to {output}"
         )
     except RevosConfigError as e:
-        click.echo(f"Configuration error: {e}", err=True)
+        click.echo(_format_error("Configuration error", e), err=True)
         raise SystemExit(1)
     except RevosModelError as e:
-        click.echo(f"Model error: {e}", err=True)
+        click.echo(_format_error("Model error", e), err=True)
         raise SystemExit(1)
     except RevosEngineError as e:
-        click.echo(f"Engine error: {e}", err=True)
+        click.echo(_format_error("Engine error", e), err=True)
         raise SystemExit(1)
     except RevosAudioError as e:
-        click.echo(f"Audio error: {e}", err=True)
+        click.echo(_format_error("Audio error", e), err=True)
         raise SystemExit(1)
     except RevosError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(_format_error("Error", e), err=True)
+        raise SystemExit(1)
+    except Exception as e:
+        click.echo(
+            f"Unexpected error ({type(e).__name__}): {e}\n\n"
+            f"Suggestion: re-run with 'revospeech --verbose synthesize ...' "
+            f"for a full traceback, or check 'revospeech models' to verify "
+            f"the model name.",
+            err=True,
+        )
         raise SystemExit(1)
 
 
@@ -402,7 +452,12 @@ def models(
         # Search all tasks — no task filter
         matches = [m for m in list_models() if m.name == download_name]
         if not matches:
-            click.echo(f"Model '{download_name}' not found.", err=True)
+            click.echo(
+                f"Model '{download_name}' not found.\n\n"
+                f"Suggestion: run 'revospeech models' to see installed models, "
+                f"or 'revospeech catalog list' to browse remote.",
+                err=True,
+            )
             raise SystemExit(1)
         manifest = matches[0]
 
@@ -424,7 +479,11 @@ def models(
     model_list = list_model_statuses(**kwargs)
 
     if not model_list:
-        click.echo("No models found.")
+        click.echo(
+            "No models found.\n\n"
+            "Suggestion: run 'revospeech catalog list' to browse remote models "
+            "or 'revospeech catalog pull <name>' to install one."
+        )
         return
 
     if as_json:
@@ -474,7 +533,11 @@ def models_info(name: str) -> None:
     try:
         m = check_model(name)
     except KeyError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(
+            f"Error: {e}\n\n"
+            f"Suggestion: run 'revospeech models' to list available models.",
+            err=True,
+        )
         raise SystemExit(1)
 
     size = f"{m.size_mb:.0f} MB" if m.size_mb else "—"
@@ -498,7 +561,11 @@ def search(query: str) -> None:
 
     results = revospeech.search_models(query)
     if not results:
-        click.echo(f"No models matching '{query}'.")
+        click.echo(
+            f"No models matching '{query}'.\n\n"
+            f"Suggestion: try 'revospeech search <different-query>' "
+            f"or 'revospeech catalog list' to see all available models."
+        )
         return
 
     # Status icon lookup shared with _status_text so coloring stays consistent.
@@ -584,13 +651,18 @@ def setup() -> None:
 
             matches = [m for m in list_models() if m.name == name]
             if not matches:
-                click.echo(f"Model '{name}' not found.", err=True)
+                click.echo(
+                    f"Model '{name}' not found.\n\n"
+                    f"Suggestion: run 'revospeech models' to see installed models, "
+                    f"or 'revospeech catalog list' to browse remote.",
+                    err=True,
+                )
             else:
                 click.echo(f"Downloading {name}...")
                 ensure_model(matches[0])
                 click.echo(f"Done. {name} is ready.")
         except Exception as e:
-            click.echo(f"Error: {e}", err=True)
+            click.echo(f"Error ({type(e).__name__}): {e}", err=True)
 
     # Step 4: API key (optional)
     if click.confirm("\nSet up API key for cloud models? (optional)", default=False):
@@ -625,7 +697,16 @@ def config_set_api_key() -> None:
             click.echo("Aborted.")
             return
     key = click.prompt("Enter API key", hide_input=True, confirmation_prompt=True)
-    set_api_key(key)
+    try:
+        set_api_key(key)
+    except Exception as e:
+        click.echo(
+            f"Error ({type(e).__name__}): {e}\n\n"
+            f"Suggestion: check that ~/.config/revospeech/ exists and is writable, "
+            f"or set REVOS_API_KEY in your environment.",
+            err=True,
+        )
+        raise SystemExit(1)
     click.echo("API key saved to ~/.config/revospeech/config.yaml")
 
 
@@ -656,11 +737,20 @@ def catalog_list(task: str | None) -> None:
     try:
         results = list_catalog(task)
     except RuntimeError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(
+            f"Error: {e}\n\n"
+            f"Suggestion: check your network connection, or set the "
+            f"REVOS_CATALOG_REPO environment variable to use a different catalog.",
+            err=True,
+        )
         raise SystemExit(1)
 
     if not results:
-        click.echo("No models found in catalog.")
+        click.echo(
+            "No models found in catalog.\n\n"
+            "Suggestion: verify REVOS_CATALOG_REPO points to a valid repo, "
+            "or try 'revospeech catalog pull <name>' with a known model name."
+        )
         return
 
     try:
@@ -695,7 +785,12 @@ def catalog_pull(model_name: str) -> None:
     try:
         dest = pull_model(model_name)
     except (KeyError, RuntimeError) as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(
+            f"Error: {e}\n\n"
+            f"Suggestion: run 'revospeech catalog list' to see what's available, "
+            f"or verify REVOS_CATALOG_REPO and your network connection.",
+            err=True,
+        )
         raise SystemExit(1)
 
     click.echo(f"Installed to {dest}")
@@ -735,7 +830,11 @@ def catalog_search(query, task, language) -> None:
             matches.append(m)
 
     if not matches:
-        click.echo("No models found.")
+        click.echo(
+            f"No models found for '{query}'.\n\n"
+            f"Suggestion: try 'revospeech catalog list' to see all available models, "
+            f"or broaden your query."
+        )
         return
 
     for m in matches:
@@ -752,11 +851,20 @@ def catalog_recommend(task: str | None, language: str | None) -> None:
     try:
         results = recommend_models(task=task, language=language)
     except RuntimeError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(
+            f"Error: {e}\n\n"
+            f"Suggestion: check your network connection or REVOS_CATALOG_REPO; "
+            f"run 'revospeech catalog list' to browse manually.",
+            err=True,
+        )
         raise SystemExit(1)
 
     if not results:
-        click.echo("No matching models found.")
+        click.echo(
+            "No matching models found.\n\n"
+            "Suggestion: relax your filters, or run 'revospeech catalog list' "
+            "to see all available models."
+        )
         return
 
     click.echo(f"Top {len(results)} recommended models:")
