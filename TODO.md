@@ -70,8 +70,8 @@
 - [x] Add `license: str` — model weight license
 - [x] Add `sha256: str` — for download integrity verification
 - [x] Add `min_ram_mb: int` / `min_vram_mb: int` — resource requirements
-- [ ] Add `quality_notes: str` — brief quality assessment
-- [ ] Validate manifests on registration — reject broken ones, warn on missing optional fields
+- [x] Add `quality_notes: str` — brief quality assessment
+- [x] Validate manifests on registration — reject broken ones, warn on missing optional fields
 
 ### 1.2 Model Status — Know What's Usable Right Now
 
@@ -85,7 +85,7 @@
 - [x] Add `list_models()` to top-level `revospeech/__init__.py` with filter params: `task`, `mode`, `language`, `status`, `capability`
 - [x] Add `search_models(query: str) -> list[ModelStatus]` — fuzzy search via `difflib.SequenceMatcher`
 - [x] Add `check_model(name: str) -> ModelStatus`
-- [ ] Fuzzy matching: typo-tolerant model name lookup with "did you mean?" suggestions
+- [x] Fuzzy matching: typo-tolerant model name lookup with "did you mean?" suggestions
 
 ### 1.4 CLI — `revospeech models`
 
@@ -94,8 +94,8 @@
 - [x] Add `--ready`, `--task`, `--mode`, `--status`, `--json` filter flags
 - [x] Add `revospeech models-info <name>` — detailed single-model view
 - [x] Add `revospeech search <query>` — fuzzy search across name, tags, description
-- [ ] Add `revospeech models --download <name>` — download a model without running inference
-- [ ] Color output when terminal supports it, plain when piped
+- [x] Add `revospeech models --download <name>` — download a model without running inference
+- [x] Color output when terminal supports it, plain when piped
 
 ### 1.5 Remote Catalog Improvements
 
@@ -103,8 +103,8 @@
 - [x] Repo-aware cache (changing `REVOLAB_CATALOG_REPO` invalidates cache)
 - [x] Add timeout (10s) and retry (3x exponential backoff) to catalog network calls
 - [ ] Show which catalog models are already installed locally
-- [ ] `revospeech catalog pull <name>` — progress bar with size + ETA
-- [ ] `revospeech catalog search <query>` — filter by language, task, size, capabilities
+- [x] `revospeech catalog pull <name>` — progress bar with size + ETA
+- [x] `revospeech catalog search <query>` — filter by language, task, size, capabilities
 - [ ] Model recommendations: "best for English ASR", "fastest TTS"
 
 ---
@@ -113,7 +113,7 @@
 
 ### 2.1 CI/CD
 
-- [ ] **Fix branch mismatch** — CI config uses `main` references but git default is `master`. Pick one and update all references.
+- [x] **Fix branch mismatch** — CI config uses `main` references but git default is `master`. Pick one and update all references.
 - [x] Unify build tools — use `uv build` everywhere
 - [x] Add `ruff format --check` to CI
 - [x] Add coverage threshold (70% in CI)
@@ -123,7 +123,7 @@
 
 - [x] Use `importlib.metadata.version("revospeech")` as single source of truth in `__init__.py`
 - [x] Remove hardcoded `"0.1.0"` from `__init__.py`
-- [ ] Add `__dir__` override so lazy imports show in tab-completion
+- [x] Add `__dir__` override so lazy imports show in tab-completion
 
 ### 2.3 Error Handling & Exceptions
 
@@ -148,7 +148,7 @@
 
 - [x] Fix `hf_user` type inconsistency in `usage.py` (`str | None`)
 - [ ] Remove dead test fixtures (`mock_recognizer`, `mock_tts_model` in conftest.py)
-- [ ] Update catalog default repo from `khursanirevo/revospeech` to revolab org
+- [x] Update catalog default repo from `khursanirevo/revospeech` to revolab org
 
 ---
 
@@ -156,43 +156,43 @@
 
 ### 3.1 Zero-Friction First Run
 
-- [ ] `ASR()` with no args should "just work" — auto-select a sensible default model
-- [ ] `TTS()` with no args should "just work" — same
-- [ ] First-run experience: detect no models → suggest `revospeech catalog list`
-- [ ] Add progress bars for model downloads with size and ETA
+- [x] `ASR()` with no args should "just work" — auto-select a sensible default model
+- [x] `TTS()` with no args should "just work" — same
+- [x] First-run experience: detect no models → suggest `revospeech catalog list`
+- [x] Add progress bars for model downloads with size and ETA
 - [ ] Add `revospeech setup` interactive command
 
 ### 3.2 Python API Ergonomics
 
-- [ ] `ASR()` / `TTS()` with no args: auto-select default model
-- [ ] `api_key` parameter on constructors
-- [ ] Auto-download models on first use with progress bar
-- [ ] Accept `Path` and `str` interchangeably for all file arguments
+- [x] `ASR()` / `TTS()` with no args: auto-select default model
+- [x] `api_key` parameter on constructors
+- [x] Auto-download models on first use with progress bar
+- [x] Accept `Path` and `str` interchangeably for all file arguments
 - [ ] Accept file-like objects (BytesIO) for in-memory audio
-- [ ] `synthesize_long()` improvements: auto-detect long text, configurable chunk size
+- [x] `synthesize_long()` improvements: auto-detect long text, configurable chunk size
 
 ### 3.3 CLI Experience
 
-- [ ] `revospeech transcribe audio.wav` — zero-config, default model
-- [ ] Better output formatting: `--format text|json|srt|vtt`
-- [ ] `revospeech info` — show version, device, cache size, API key status
+- [x] `revospeech transcribe audio.wav` — zero-config, default model
+- [x] Better output formatting: `--format text|json|srt|vtt`
+- [x] `revospeech info` — show version, device, cache size, API key status
 - [ ] Progress spinners for API calls
-- [ ] `--verbose` / `--quiet` flags
+- [x] `--verbose` / `--quiet` flags
 
 ### 3.4 Batch Processing
 
-- [ ] Add `BatchResult` and `BatchReport` dataclasses
-- [ ] Add `asr.transcribe_batch(paths, max_workers=4, on_error="continue") -> BatchReport`
-- [ ] Add `tts.synthesize_batch(texts, max_workers=4, on_error="continue") -> BatchReport`
+- [x] Add `BatchResult` and `BatchReport` dataclasses
+- [x] Add `asr.transcribe_batch(paths, max_workers=4, on_error="continue") -> BatchReport`
+- [x] Add `tts.synthesize_batch(texts, max_workers=4, on_error="continue") -> BatchReport`
 - [ ] CLI: `revospeech transcribe *.wav`, `revospeech synthesize --file-list inputs.txt`
-- [ ] Batch report export: `report.save("report.json")`
+- [x] Batch report export: `report.save("report.json")`
 
 ### 3.5 Result Objects That Feel Right
 
-- [ ] Add `duration` property to `Transcript`
-- [ ] Add `save()` method to `Transcript` (`.srt`, `.vtt`, `.txt`, `.json`)
-- [ ] Add `play()` method to `Audio` (optional dependency)
-- [ ] Add `__repr__` to `Transcript` and `Audio`
+- [x] Add `duration` property to `Transcript`
+- [x] Add `save()` method to `Transcript` (`.srt`, `.vtt`, `.txt`, `.json`)
+- [x] Add `play()` method to `Audio` (optional dependency)
+- [x] Add `__repr__` to `Transcript` and `Audio`
 
 ### 3.6 Type Hints & Editor Support
 
@@ -303,14 +303,14 @@
 
 **Layer 1 — Copy-paste examples (80% of users)**
 
-- [ ] `examples/01_quickstart.py` — 5 lines, `ASR()` + `TTS()` with defaults
-- [ ] `examples/02_pick_model.py` — `list_models()`, pass model name
-- [ ] `examples/03_transcribe_options.py` — `language=`, `word_timestamps=` kwargs
-- [ ] `examples/04_voice_cloning.py` — `ref_audio=`, `ref_text=` kwargs
-- [ ] `examples/05_long_text.py` — `synthesize_long()` for paragraphs
-- [ ] `examples/06_batch_processing.py` — batch methods
-- [ ] `examples/07_api_backend.py` — switch to revolab API with `api_key=`
-- [ ] `examples/08_roundtrip_test.py` — TTS → ASR → assert
+- [x] `examples/01_quickstart.py` — 5 lines, `ASR()` + `TTS()` with defaults
+- [x] `examples/02_pick_model.py` — `list_models()`, pass model name
+- [x] `examples/03_transcribe_options.py` — `language=`, `word_timestamps=` kwargs
+- [x] `examples/04_voice_cloning.py` — `ref_audio=`, `ref_text=` kwargs
+- [x] `examples/05_long_text.py` — `synthesize_long()` for paragraphs
+- [x] `examples/06_batch_processing.py` — batch methods
+- [x] `examples/07_api_backend.py` — switch to revolab API with `api_key=`
+- [x] `examples/08_roundtrip_test.py` — TTS → ASR → assert
 
 **Layer 2 — Docstrings (15% of users)**
 
@@ -347,10 +347,10 @@
 
 ### 7.3 Community Files
 
-- [ ] `CODE_OF_CONDUCT.md`
-- [ ] `SECURITY.md`
-- [ ] `.github/ISSUE_TEMPLATE/`
-- [ ] `.github/PULL_REQUEST_TEMPLATE.md`
+- [x] `CODE_OF_CONDUCT.md`
+- [x] `SECURITY.md`
+- [x] `.github/ISSUE_TEMPLATE/`
+- [x] `.github/PULL_REQUEST_TEMPLATE.md`
 
 ### 7.4 README
 
