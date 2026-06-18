@@ -248,10 +248,12 @@ Run any example with `python examples/01_quickstart.py`.
 
 ## Available Models
 
-| Model | Task | Backend | Mode | Languages | Access | Description |
-|-------|------|---------|------|-----------|--------|-------------|
-| `zipformer-v2` | ASR | sherpa-onnx | local | English | Open | Zipformer small transducer model |
-| `revovoice` | TTS | RevoVoice | local | 600+ | **Gated** | Zero-shot multilingual TTS with voice cloning |
+| Model | Task | Mode | Size | Languages | Quality Notes | Access |
+|-------|------|------|------|-----------|---------------|--------|
+| `zipformer-v2` | ASR | local | ~80 MB | English | Fast, CPU-friendly; supports word timestamps | Open |
+| `revovoice` | TTS | local | ~1.2 GB | 600+ (multilingual) | High-quality zero-shot cloning, GPU recommended | **Gated** |
+
+Run `revospeech models` for the live table with status indicators, or `revospeech models-info <name>` for full details (capabilities, min RAM/VRAM, license).
 
 ### Model Directory
 
