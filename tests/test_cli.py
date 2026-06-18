@@ -164,7 +164,7 @@ def test_models_command(runner: CliRunner):
             name="test-model",
             task="asr",
             backend="sherpa-onnx",
-            model_type="",
+            model_type="transducer",
             model_url="",
             sample_rate=16000,
             language="en",

@@ -172,15 +172,38 @@ def synthesize(
 @click.option("--status", "-s", "status_filter", help="Filter by status")
 @click.option("--ready", is_flag=True, help="Show only ready models")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.option(
+    "--download",
+    "download_name",
+    default=None,
+    help="Download a model by name",
+)
 def models(
     task: str | None,
     mode: str | None,
     status_filter: str | None,
     ready: bool,
     as_json: bool,
+    download_name: str | None,
 ) -> None:
-    """List available models."""
+    """List or download available models."""
     from revospeech.registry.status import list_model_statuses
+
+    if download_name:
+        from revospeech.registry import list_models
+        from revospeech.registry.downloader import ensure_model
+
+        # Search all tasks — no task filter
+        matches = [m for m in list_models() if m.name == download_name]
+        if not matches:
+            click.echo(f"Model '{download_name}' not found.", err=True)
+            raise SystemExit(1)
+        manifest = matches[0]
+
+        click.echo(f"Downloading {download_name}...")
+        ensure_model(manifest)
+        click.echo(f"Done. {download_name} is ready.")
+        return
 
     kwargs: dict = {}
     if task:
@@ -289,39 +312,37 @@ def search(query: str) -> None:
 
 @cli.command()
 def info() -> None:
-    """Show environment and configuration info."""
+    """Show version, device, cache size, and API key status."""
     import sys
 
-    click.echo(f"RevoSpeech version:   {_get_version()}")
-    click.echo(f"Python:          {sys.version.split()[0]}")
-
-    # Device
+    from revospeech import __version__
+    from revospeech.config import get_api_key
     from revospeech.device import auto_detect_device
+    from revospeech.registry.downloader import CACHE_DIR
 
-    click.echo(f"Device:          {auto_detect_device()}")
+    click.echo(f"revospeech {__version__}")
+    click.echo(f"Python:          {sys.version.split()[0]}")
+    click.echo(f"Device: {auto_detect_device()}")
 
-    # Models
-    from revospeech.registry import list_models
+    # Cache size
+    cache = Path(CACHE_DIR)
+    click.echo(f"Cache dir:       {cache}")
+    if cache.exists():
+        total = sum(f.stat().st_size for f in cache.rglob("*") if f.is_file())
+        click.echo(f"Cache: {cache} ({total / 1e6:.1f} MB)")
+    else:
+        click.echo(f"Cache: {cache} (empty)")
 
-    click.echo(f"Models loaded:   {len(list_models())}")
+    # API key status
+    key = get_api_key()
+    if key:
+        click.echo(f"API key: {key[:4]}...{key[-4:]} (set)")
+    else:
+        click.echo("API key: not set")
 
-    # Cache dir
-    cache_dir = Path.home() / ".cache" / "revospeech"
-    click.echo(f"Cache dir:       {cache_dir}")
-
-    # Catalog repo
     from revospeech.catalog import get_catalog_repo
 
-    click.echo(f"Catalog repo:    {get_catalog_repo()}")
-
-    # HF auth
-    try:
-        from huggingface_hub import HfApi
-
-        user = HfApi().whoami()
-        click.echo(f"HuggingFace:     {user.get('name', 'unknown')}")
-    except Exception:
-        click.echo("HuggingFace:     not logged in")
+    click.echo(f"Catalog repo: {get_catalog_repo()}")
 
 
 @cli.group()

@@ -242,7 +242,7 @@ def test_tts_unsupported_backend():
             name="bad-backend",
             task="tts",
             backend="nonexistent",
-            model_type="",
+            model_type="vits",
             model_url="",
             sample_rate=24000,
             language="en",
