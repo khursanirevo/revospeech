@@ -322,3 +322,86 @@ def test_models_command_empty_with_suggestion(runner: CliRunner):
         assert "catalog list" in result.output
     finally:
         _models.clear()
+
+
+def test_models_info_command_success(runner: CliRunner):
+    """revos models-info <name> shows detailed info."""
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register
+
+    _models.clear()
+    register(
+        ModelManifest(
+            name="zipformer-v2",
+            task="asr",
+            backend="sherpa-onnx",
+            model_type="transducer",
+            model_url="",
+            sample_rate=16000,
+            language="en",
+            description="Test",
+            size_mb=80.0,
+            capabilities=["word-timestamps"],
+            languages=["en"],
+            files={},
+        )
+    )
+    try:
+        result = runner.invoke(cli, ["models-info", "zipformer-v2"])
+        assert result.exit_code == 0
+        assert "zipformer-v2" in result.output
+        assert "asr" in result.output
+        assert "80 MB" in result.output
+        assert "word-timestamps" in result.output
+    finally:
+        _models.clear()
+
+
+def test_models_info_command_not_found(runner: CliRunner):
+    """revos models-info <unknown> exits with error + suggestion."""
+    from revospeech.registry.registry import _models
+
+    _models.clear()
+    try:
+        result = runner.invoke(cli, ["models-info", "nonexistent-model"])
+        assert result.exit_code == 1
+        assert "Error" in result.output
+        assert "revospeech models" in result.output
+    finally:
+        _models.clear()
+
+
+@patch("revospeech.asr.ASR")
+def test_transcribe_revos_engine_error(mock_asr_cls, runner: CliRunner, sample_wav):
+    """transcribe surfaces RevosEngineError with formatted message."""
+    from revospeech.exceptions import RevosEngineError
+
+    mock_asr = MagicMock()
+    mock_asr.transcribe.side_effect = RevosEngineError(
+        "Model failed", suggestion="Check the model files"
+    )
+    mock_asr_cls.return_value = mock_asr
+
+    result = runner.invoke(cli, ["transcribe", "-m", "test", sample_wav])
+    assert result.exit_code == 1
+    assert "Engine error" in result.output
+    assert "Check the model files" in result.output
+
+
+@patch("revospeech.tts.TTS")
+def test_synthesize_revos_config_error(mock_tts_cls, runner: CliRunner):
+    """synthesize surfaces RevosConfigError with formatted message."""
+    from revospeech.exceptions import RevosConfigError
+
+    mock_tts = MagicMock()
+    mock_tts.synthesize.side_effect = RevosConfigError(
+        "Missing API key", suggestion="Run 'revospeech config set-api-key'"
+    )
+    mock_tts_cls.return_value = mock_tts
+
+    result = runner.invoke(
+        cli, ["synthesize", "-m", "test", "-t", "hello", "-o", "out.wav"]
+    )
+    assert result.exit_code == 1
+    assert "Configuration error" in result.output
+    assert "set-api-key" in result.output
