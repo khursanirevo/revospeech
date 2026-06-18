@@ -65,6 +65,27 @@ class Audio:
 
         return Audio(samples=np.concatenate(parts), sample_rate=sr)
 
+    def play(self, block: bool = True) -> None:
+        """Play audio through the system's audio output.
+
+        Requires the optional ``sounddevice`` package.
+
+        Args:
+            block: If True (default), wait until playback finishes.
+                If False, return immediately (playback continues in background).
+
+        Raises:
+            ImportError: If sounddevice is not installed.
+        """
+        try:
+            import sounddevice as sd
+        except ImportError:
+            raise ImportError(
+                "Audio playback requires 'sounddevice'. Install it:\n"
+                "  pip install sounddevice"
+            )
+        sd.play(self.samples, self.sample_rate, blocking=block)
+
     def __repr__(self) -> str:
         return (
             f"Audio(duration={self.duration:.1f}s, "

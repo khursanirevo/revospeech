@@ -112,6 +112,10 @@ class BatchResult:
     def succeeded(self) -> bool:
         return self.error is None
 
+    def __repr__(self) -> str:
+        status = "ok" if self.succeeded else f"error: {self.error}"
+        return f"BatchResult(input={str(self.input)!r}, {status}, {self.duration:.2f}s)"
+
 
 @dataclass
 class BatchReport:
@@ -130,3 +134,38 @@ class BatchReport:
     @property
     def errors(self) -> list[BatchResult]:
         return [item for item in self.items if item.error is not None]
+
+    def save(self, path: str | Path) -> None:
+        """Save batch report to JSON file."""
+        data = {
+            "total": self.total,
+            "succeeded": self.succeeded,
+            "failed": self.failed,
+            "total_duration": self.total_duration,
+            "items": [],
+        }
+        for item in self.items:
+            item_data = {
+                "input": str(item.input),
+                "duration": item.duration,
+                "error": item.error,
+            }
+            if item.result is not None:
+                if hasattr(item.result, "text"):
+                    item_data["result"] = {
+                        "text": item.result.text,
+                        "type": type(item.result).__name__,
+                    }
+                else:
+                    item_data["result"] = {"type": type(item.result).__name__}
+            data["items"].append(item_data)
+
+        Path(path).write_text(
+            json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"BatchReport(total={self.total}, succeeded={self.succeeded}, "
+            f"failed={self.failed}, {self.total_duration:.2f}s)"
+        )
