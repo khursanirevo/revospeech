@@ -240,16 +240,16 @@
 ### 5.2 API Feature Parity with Local
 
 - [ ] Word-level timestamps
-- [ ] Voice cloning via `ref_audio`
+- [x] Voice cloning via `ref_audio` (local: `RevoVoiceTTS.synthesize(ref_audio=...)`)
 - [ ] `synthesize_long()` for API
-- [ ] Voice listing: `TTS.list_voices()`
+- [x] Voice listing: `TTS.list_voices()` (local: `BaseTTS.list_voices()` + VITS override)
 - [ ] Speed/pitch controls
 
 ### 5.3 API Response → Same Result Types
 
 - [ ] API ASR → `Transcript` with `Segment` objects
 - [ ] API TTS → `Audio` with `samples`, `sample_rate`, `save()`
-- [ ] User code identical whether local or API
+- [x] User code identical whether local or API (factory dispatch by `manifest.mode`)
 
 ---
 
