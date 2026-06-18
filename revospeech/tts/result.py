@@ -43,8 +43,16 @@ class Audio:
     def save(self, path: str | Path) -> None:
         """Save audio to a file.
 
+        Example:
+            >>> import numpy as np
+            >>> from revospeech.tts.result import Audio
+            >>> samples = np.zeros(22050, dtype=np.float32)
+            >>> audio = Audio(samples=samples, sample_rate=22050)
+            >>> audio.save('silence.wav')  # doctest: +SKIP
+
         Args:
-            path: Output file path (e.g., "output.wav").
+            path: Output file path (e.g., "output.wav"). Format inferred
+                from extension via soundfile (.wav, .flac, .ogg supported).
         """
         sf.write(str(path), self.samples, self.sample_rate)
 

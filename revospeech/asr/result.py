@@ -72,6 +72,12 @@ class Transcript:
         - .srt: SubRip subtitle format
         - .vtt: WebVTT format
 
+        Example:
+            >>> from revospeech.asr.result import Transcript, Segment
+            >>> seg = Segment(start=0.0, end=1.5, text='hello')
+            >>> t = Transcript(text='hello', segments=[seg], language='en')
+            >>> t.save('out.srt')  # doctest: +SKIP
+
         Args:
             path: Output file path.
         """
@@ -156,7 +162,14 @@ class BatchReport:
         return [item for item in self.items if item.error is not None]
 
     def save(self, path: str | Path) -> None:
-        """Save batch report to JSON file."""
+        """Save batch report to JSON file.
+
+        Example:
+            >>> from revospeech.asr.result import BatchReport
+            >>> report = BatchReport(items=[], total=0, succeeded=0,
+            ...                      failed=0, total_duration=0.0)
+            >>> report.save('report.json')  # doctest: +SKIP
+        """
         items: list[dict[str, object]] = []
         for item in self.items:
             item_data: dict[str, object] = {

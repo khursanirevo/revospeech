@@ -63,7 +63,16 @@ def list_models(
     status: str | None = None,
     capability: str | None = None,
 ) -> list:
-    """List available models with optional filters."""
+    """List available models with optional filters.
+
+    Example:
+        >>> import revospeech
+        >>> ready = revospeech.list_models(status='ready')
+        >>> for m in ready:
+        ...     print(m.name, m.size_mb)
+        >>> # Filter to ready ASR models only
+        >>> asr = revospeech.list_models(task='asr', status='ready')
+    """
     from revospeech.registry.status import list_model_statuses
 
     return list_model_statuses(
@@ -76,7 +85,15 @@ def list_models(
 
 
 def search_models(query: str) -> list:
-    """Search models by name, tags, or description using fuzzy matching."""
+    """Search models by name, tags, or description using fuzzy matching.
+
+    Example:
+        >>> import revospeech
+        >>> # Fuzzy match — typos and partial names work
+        >>> results = revospeech.search_models('zip')
+        >>> [m.name for m in results]  # doctest: +SKIP
+        ['zipformer-v2']
+    """
     from difflib import SequenceMatcher
 
     from revospeech.registry.status import list_model_statuses
