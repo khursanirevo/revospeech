@@ -18,6 +18,6 @@ if __name__ == "__main__":
 
     print(f"Language: {result.language}")
     print(f"Text: {result.text}")
-    print(f"\nSegments:")
+    print("\nSegments:")
     for seg in result.segments:
         print(f"  [{seg.start:.1f}s - {seg.end:.1f}s] {seg.text}")
