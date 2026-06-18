@@ -228,11 +228,14 @@
 
 ### 5.1 Core API Client
 
-- [ ] HTTP client with retries, timeout, connection pooling
-- [ ] Request/response logging (debug level, API key masked)
-- [ ] Error mapping: HTTP 401 → `RevosConfigError`, HTTP 429 → rate limit, HTTP 5xx → retry
-- [ ] Streaming support for TTS
-- [ ] File upload for ASR (large audio files)
+> Skeleton landed in `revospeech/http_client.py`. Remaining items (streaming TTS,
+> file upload) need concrete endpoint shapes from the API contract.
+
+- [x] HTTP client with retries, timeout, connection pooling — `RevolabClient` (httpx)
+- [x] Request/response logging (debug level, API key masked) — `_mask_key()` + `logger.debug`
+- [x] Error mapping: HTTP 401 → `RevosConfigError`, HTTP 429 → rate limit, HTTP 5xx → retry
+- [ ] Streaming support for TTS (**BLOCKED** — waiting on API contract)
+- [ ] File upload for ASR (large audio files) (**BLOCKED** — waiting on API contract)
 
 ### 5.2 API Feature Parity with Local
 
