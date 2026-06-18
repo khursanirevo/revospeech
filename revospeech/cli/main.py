@@ -64,7 +64,12 @@ def cli(ctx, verbose, quiet) -> None:
 
 @cli.command()
 @click.option("--model", "-m", required=True, help="ASR model name (e.g. zipformer-v2)")
-@click.argument("audio_path", type=click.Path(exists=True))
+@click.argument(
+    "audio_paths",
+    nargs=-1,
+    type=click.Path(exists=True),
+    required=True,
+)
 @click.option(
     "--format",
     "-fmt",
@@ -87,12 +92,16 @@ def cli(ctx, verbose, quiet) -> None:
 )
 def transcribe(
     model: str,
-    audio_path: str,
+    audio_paths: tuple[str, ...],
     output_format: str,
     json_flag: bool,
     srt_flag: bool,
 ) -> None:
-    """Transcribe an audio file to text."""
+    """Transcribe one or more audio files to text.
+
+    Pass multiple audio paths to enable batch mode (parallel processing).
+    A single path preserves the original single-file output.
+    """
     from revospeech.asr import ASR
     from revospeech.exceptions import (
         RevosAudioError,
@@ -108,44 +117,82 @@ def transcribe(
     elif srt_flag:
         output_format = "srt"
 
+    # Single-file path: preserve backward-compatible output.
+    if len(audio_paths) == 1:
+        audio_path = audio_paths[0]
+        try:
+            asr = ASR(model)
+            result = asr.transcribe(audio_path)
+            _emit_transcript(result, output_format)
+        except RevosConfigError as e:
+            click.echo(f"Configuration error: {e}", err=True)
+            raise SystemExit(1)
+        except RevosModelError as e:
+            click.echo(f"Model error: {e}", err=True)
+            raise SystemExit(1)
+        except RevosEngineError as e:
+            click.echo(f"Engine error: {e}", err=True)
+            raise SystemExit(1)
+        except RevosAudioError as e:
+            click.echo(f"Audio error: {e}", err=True)
+            raise SystemExit(1)
+        except RevosError as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(1)
+        return
+
+    # Batch mode: multiple files.
     try:
         asr = ASR(model)
-        result = asr.transcribe(audio_path)
+        report = asr.transcribe_batch(list(audio_paths))
 
-        if output_format == "json":
-            data = {
-                "text": result.text,
-                "segments": [
-                    {
-                        "start": seg.start,
-                        "end": seg.end,
-                        "text": seg.text,
-                        "confidence": seg.confidence,
+        click.echo(
+            f"Transcribed {report.succeeded}/{report.total} "
+            f"in {report.total_duration:.1f}s"
+        )
+
+        for item in report.items:
+            if item.succeeded and item.result is not None:
+                if output_format == "json":
+                    data = {
+                        "file": str(item.input),
+                        "text": item.result.text,
+                        "segments": [
+                            {
+                                "start": seg.start,
+                                "end": seg.end,
+                                "text": seg.text,
+                                "confidence": seg.confidence,
+                            }
+                            for seg in item.result.segments
+                        ],
+                        "language": item.result.language,
                     }
-                    for seg in result.segments
-                ],
-                "language": result.language,
-            }
-            click.echo(json.dumps(data, indent=2, ensure_ascii=False))
-        elif output_format == "srt":
-            for i, seg in enumerate(result.segments, 1):
-                start_ts = _format_srt_time(seg.start)
-                end_ts = _format_srt_time(seg.end)
-                click.echo(f"{i}")
-                click.echo(f"{start_ts} --> {end_ts}")
-                click.echo(seg.text)
-                click.echo()
-        elif output_format == "vtt":
-            click.echo("WEBVTT")
-            click.echo()
-            for seg in result.segments:
-                start_ts = _format_vtt_time(seg.start)
-                end_ts = _format_vtt_time(seg.end)
-                click.echo(f"{start_ts} --> {end_ts}")
-                click.echo(seg.text)
-                click.echo()
-        else:  # text
-            click.echo(result.text)
+                    click.echo(json.dumps(data, indent=2, ensure_ascii=False))
+                elif output_format == "srt":
+                    click.echo(f"=== {item.input} ===")
+                    for i, seg in enumerate(item.result.segments, 1):
+                        start_ts = _format_srt_time(seg.start)
+                        end_ts = _format_srt_time(seg.end)
+                        click.echo(f"{i}")
+                        click.echo(f"{start_ts} --> {end_ts}")
+                        click.echo(seg.text)
+                        click.echo()
+                elif output_format == "vtt":
+                    click.echo(f"=== {item.input} ===")
+                    click.echo("WEBVTT")
+                    click.echo()
+                    for seg in item.result.segments:
+                        start_ts = _format_vtt_time(seg.start)
+                        end_ts = _format_vtt_time(seg.end)
+                        click.echo(f"{start_ts} --> {end_ts}")
+                        click.echo(seg.text)
+                        click.echo()
+                else:  # text
+                    click.echo(f"=== {item.input} ===")
+                    click.echo(item.result.text)
+            else:
+                click.echo(f"FAILED: {item.input}: {item.error}", err=True)
     except RevosConfigError as e:
         click.echo(f"Configuration error: {e}", err=True)
         raise SystemExit(1)
@@ -170,6 +217,12 @@ def transcribe(
     "--file", "-f", type=click.Path(exists=True), help="Text file to synthesize"
 )
 @click.option(
+    "--file-list",
+    "file_list",
+    type=click.Path(exists=True),
+    help="Text file with one text per line for batch synthesis",
+)
+@click.option(
     "--output", "-o", required=True, type=click.Path(), help="Output audio path"
 )
 @click.option("--speed", default=1.0, help="Speech speed (default: 1.0)")
@@ -183,12 +236,18 @@ def synthesize(
     model: str,
     text: str | None,
     file: str | None,
+    file_list: str | None,
     output: str,
     speed: float,
     ref_audio: str | None,
     ref_text: str | None,
 ) -> None:
-    """Synthesize speech from text."""
+    """Synthesize speech from text.
+
+    Use --text or --file for a single clip, or --file-list to synthesize
+    many texts in batch (one per line). --output in batch mode is treated
+    as the output directory (defaults to 'tts_output').
+    """
     from revospeech.exceptions import (
         RevosAudioError,
         RevosConfigError,
@@ -197,6 +256,56 @@ def synthesize(
         RevosModelError,
     )
     from revospeech.tts import TTS
+
+    # Batch mode via --file-list
+    if file_list is not None:
+        if text is not None or file is not None:
+            raise click.UsageError(
+                "--file-list cannot be combined with --text or --file"
+            )
+
+        with open(file_list) as f:
+            texts = [line.strip() for line in f if line.strip()]
+        if not texts:
+            raise click.UsageError("File list is empty")
+
+        output_dir = str(Path(output).parent) if output else "tts_output"
+        try:
+            tts = TTS(model)
+            report = tts.synthesize_batch(
+                texts,
+                output_dir=output_dir,
+                speed=speed,
+                ref_audio=ref_audio,
+                ref_text=ref_text,
+            )
+            click.echo(
+                f"Synthesized {report.succeeded}/{report.total} clips "
+                f"in {report.total_duration:.1f}s"
+            )
+            for item in report.items:
+                if item.succeeded:
+                    status = "OK"
+                else:
+                    status = f"FAIL: {item.error}"
+                preview = str(item.input)[:60]
+                click.echo(f"  [{status}] {preview}")
+        except RevosConfigError as e:
+            click.echo(f"Configuration error: {e}", err=True)
+            raise SystemExit(1)
+        except RevosModelError as e:
+            click.echo(f"Model error: {e}", err=True)
+            raise SystemExit(1)
+        except RevosEngineError as e:
+            click.echo(f"Engine error: {e}", err=True)
+            raise SystemExit(1)
+        except RevosAudioError as e:
+            click.echo(f"Audio error: {e}", err=True)
+            raise SystemExit(1)
+        except RevosError as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(1)
+        return
 
     if text is None and file is None:
         raise click.UsageError("Either --text or --file must be provided")
@@ -422,6 +531,63 @@ def info() -> None:
     click.echo(f"Catalog repo: {get_catalog_repo()}")
 
 
+@cli.command()
+def setup() -> None:
+    """Interactive setup wizard for first-time users."""
+    from revospeech.registry.status import list_model_statuses
+
+    click.echo("Welcome to RevoSpeech! Let's get you set up.\n")
+
+    # Step 1: Pick task
+    task = click.prompt(
+        "What do you want to do?",
+        type=click.Choice(["asr", "tts", "both"]),
+        default="both",
+    )
+
+    tasks = ["asr", "tts"] if task == "both" else [task]
+
+    # Step 2: Show available models for each task
+    for t in tasks:
+        click.echo(f"\n--- {t.upper()} models ---")
+        models = list_model_statuses(task=t)
+        if not models:
+            click.echo(f"No {t} models registered. Try: revospeech catalog list")
+            continue
+        for m in models:
+            icon = {"ready": "✓", "needs-download": "↓", "needs-api-key": "✗"}.get(
+                m.status, "?"
+            )
+            click.echo(f"  {icon} {m.name:<20} {m.status}")
+
+    # Step 3: Offer to install a model
+    if click.confirm("\nInstall a model now?", default=True):
+        name = click.prompt("Model name", type=str)
+        try:
+            from revospeech.registry import list_models
+            from revospeech.registry.downloader import ensure_model
+
+            matches = [m for m in list_models() if m.name == name]
+            if not matches:
+                click.echo(f"Model '{name}' not found.", err=True)
+            else:
+                click.echo(f"Downloading {name}...")
+                ensure_model(matches[0])
+                click.echo(f"Done. {name} is ready.")
+        except Exception as e:
+            click.echo(f"Error: {e}", err=True)
+
+    # Step 4: API key (optional)
+    if click.confirm("\nSet up API key for cloud models? (optional)", default=False):
+        key = click.prompt("Enter API key", hide_input=True)
+        from revospeech.config import set_api_key
+
+        set_api_key(key)
+        click.echo("API key saved.")
+
+    click.echo("\nSetup complete! Try: revospeech info")
+
+
 @cli.group()
 def catalog() -> None:
     """Browse and pull models from the remote catalog."""
@@ -573,6 +739,44 @@ def _format_vtt_time(seconds: float) -> str:
     secs = int(seconds % 60)
     millis = int((seconds % 1) * 1000)
     return f"{hours:02d}:{minutes:02d}:{secs:02d}.{millis:03d}"
+
+
+def _emit_transcript(result, output_format: str) -> None:
+    """Print a single Transcript in the requested output format."""
+    if output_format == "json":
+        data = {
+            "text": result.text,
+            "segments": [
+                {
+                    "start": seg.start,
+                    "end": seg.end,
+                    "text": seg.text,
+                    "confidence": seg.confidence,
+                }
+                for seg in result.segments
+            ],
+            "language": result.language,
+        }
+        click.echo(json.dumps(data, indent=2, ensure_ascii=False))
+    elif output_format == "srt":
+        for i, seg in enumerate(result.segments, 1):
+            start_ts = _format_srt_time(seg.start)
+            end_ts = _format_srt_time(seg.end)
+            click.echo(f"{i}")
+            click.echo(f"{start_ts} --> {end_ts}")
+            click.echo(seg.text)
+            click.echo()
+    elif output_format == "vtt":
+        click.echo("WEBVTT")
+        click.echo()
+        for seg in result.segments:
+            start_ts = _format_vtt_time(seg.start)
+            end_ts = _format_vtt_time(seg.end)
+            click.echo(f"{start_ts} --> {end_ts}")
+            click.echo(seg.text)
+            click.echo()
+    else:  # text
+        click.echo(result.text)
 
 
 if __name__ == "__main__":
