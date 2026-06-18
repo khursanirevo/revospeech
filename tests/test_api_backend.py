@@ -435,3 +435,197 @@ def test_revolab_tts_close():
     engine._client = _MockClient()
     engine.close()
     assert closed[0]
+
+
+# ---------------------------------------------------------------------------
+# RevolabTTS: __init__ branches, ref_audio path, error wrapping, audio_url fetch
+# ---------------------------------------------------------------------------
+def test_revolab_tts_init_with_manifest_endpoint(monkeypatch):
+    """__init__ reads api_endpoint from manifest when present."""
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register
+    from revospeech.tts.revolab_engine import RevolabTTS
+
+    saved = dict(_models)
+    _models.clear()
+    register(
+        ModelManifest(
+            name="revolab-tts-v1",
+            task="tts",
+            backend="revolab",
+            model_type="revolab",
+            model_url="",
+            sample_rate=22050,
+            language="en",
+            description="",
+            mode="api",
+            api_endpoint="https://custom.api/v2",
+            files={},
+        )
+    )
+    captured = {}
+    monkeypatch.setattr(
+        "revospeech.http_client.get_api_key", lambda *a, **kw: "rv-test12345678"
+    )
+
+    class _FakeClient:
+        def __init__(self, *args, endpoint=None, **kwargs):
+            captured["endpoint"] = endpoint
+
+    monkeypatch.setattr("revospeech.tts.revolab_engine.RevolabClient", _FakeClient)
+    try:
+        RevolabTTS("revolab-tts-v1")
+    finally:
+        _models.clear()
+        _models.update(saved)
+    assert captured["endpoint"] == "https://custom.api/v2"
+
+
+def test_revolab_tts_init_unknown_model_falls_back(monkeypatch):
+    """__init__ falls back to default endpoint when model not registered."""
+    from revospeech.tts.revolab_engine import RevolabTTS
+
+    captured = {}
+    monkeypatch.setattr(
+        "revospeech.http_client.get_api_key", lambda *a, **kw: "rv-test12345678"
+    )
+
+    class _FakeClient:
+        def __init__(self, *args, endpoint=None, **kwargs):
+            captured["endpoint"] = endpoint
+
+    monkeypatch.setattr("revospeech.tts.revolab_engine.RevolabClient", _FakeClient)
+    RevolabTTS("totally-unknown-model")
+    assert captured["endpoint"] == "https://api.revolab.ai/v1"
+
+
+def test_revolab_tts_synthesize_with_ref_audio(tmp_path, monkeypatch):
+    """synthesize() with ref_audio reads file and includes it in request."""
+    import io
+
+    import numpy as np
+    import soundfile as sf
+
+    from revospeech.tts.revolab_engine import RevolabTTS
+
+    ref = tmp_path / "ref.wav"
+    samples = np.zeros(16000, dtype=np.float32)
+    sf.write(str(ref), samples, 16000, format="WAV")
+
+    buf = io.BytesIO()
+    out_samples = np.zeros(22050, dtype=np.float32)
+    sf.write(buf, out_samples, 22050, format="WAV")
+    encoded = base64.b64encode(buf.getvalue()).decode()
+
+    captured = {}
+
+    class _MockClient:
+        def post(self, path, **kwargs):
+            captured["kwargs"] = kwargs
+            return {"audio_base64": encoded}
+
+        def close(self):
+            pass
+
+    engine = RevolabTTS.__new__(RevolabTTS)
+    engine.model_name = "test"
+    engine.device = "cpu"
+    engine._client = _MockClient()
+
+    engine.synthesize("clone this", ref_audio=str(ref), ref_text="reference text")
+    assert captured["kwargs"]["files"]["ref_audio"][0] == "ref.wav"
+    assert captured["kwargs"]["data"]["ref_text"] == "reference text"
+
+
+def test_revolab_tts_synthesize_saves_output(tmp_path):
+    """synthesize() writes to output_path when provided."""
+    import io
+
+    import numpy as np
+    import soundfile as sf
+
+    from revospeech.tts.revolab_engine import RevolabTTS
+
+    buf = io.BytesIO()
+    samples = np.zeros(22050, dtype=np.float32)
+    sf.write(buf, samples, 22050, format="WAV")
+    encoded = base64.b64encode(buf.getvalue()).decode()
+
+    class _MockClient:
+        def post(self, path, **kwargs):
+            return {"audio_base64": encoded}
+
+        def close(self):
+            pass
+
+    engine = RevolabTTS.__new__(RevolabTTS)
+    engine.model_name = "test"
+    engine.device = "cpu"
+    engine._client = _MockClient()
+
+    out = tmp_path / "out.wav"
+    engine.synthesize("hello", output_path=str(out))
+    assert out.exists()
+
+
+def test_revolab_tts_synthesize_wraps_unknown_exception():
+    """Non-RevosEngineError exceptions are wrapped in RevosEngineError."""
+    from revospeech.exceptions import RevosEngineError
+    from revospeech.tts.revolab_engine import RevolabTTS
+
+    class _MockClient:
+        def post(self, path, **kwargs):
+            raise ConnectionError("network down")
+
+        def close(self):
+            pass
+
+    engine = RevolabTTS.__new__(RevolabTTS)
+    engine.model_name = "test"
+    engine.device = "cpu"
+    engine._client = _MockClient()
+
+    with pytest.raises(RevosEngineError, match="TTS API call failed"):
+        engine.synthesize("hello")
+
+
+def test_revolab_tts_synthesize_passes_engine_error_through():
+    """RevosEngineError from client.post is re-raised, not wrapped."""
+    from revospeech.exceptions import RevosEngineError
+    from revospeech.tts.revolab_engine import RevolabTTS
+
+    class _MockClient:
+        def post(self, path, **kwargs):
+            raise RevosEngineError("auth failed", suggestion="check key")
+
+        def close(self):
+            pass
+
+    engine = RevolabTTS.__new__(RevolabTTS)
+    engine.model_name = "test"
+    engine.device = "cpu"
+    engine._client = _MockClient()
+
+    with pytest.raises(RevosEngineError, match="auth failed"):
+        engine.synthesize("hello")
+
+
+def test_revolab_tts_fetch_audio_from_url():
+    """_fetch_audio uses get_raw when response has audio_url."""
+    from revospeech.tts.revolab_engine import RevolabTTS
+
+    fetched = []
+
+    class _MockClient:
+        def get_raw(self, url):
+            fetched.append(url)
+            return b"raw audio bytes"
+
+    engine = RevolabTTS.__new__(RevolabTTS)
+    engine.model_name = "test"
+    engine.device = "cpu"
+    engine._client = _MockClient()
+
+    result = engine._fetch_audio({"audio_url": "https://cdn.example.com/a.wav"})
+    assert result == b"raw audio bytes"
+    assert fetched == ["https://cdn.example.com/a.wav"]
