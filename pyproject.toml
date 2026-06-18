@@ -45,7 +45,7 @@ gpu = ["onnxruntime-gpu"]
 tts = ["omnivoice"]
 api = ["httpx>=0.27"]
 all = ["onnxruntime-gpu", "omnivoice", "httpx>=0.27"]
-dev = ["pytest>=7.0", "pytest-cov", "ruff", "mypy>=1.11"]
+dev = ["pytest>=7.0", "pytest-cov", "ruff", "mypy>=1.11", "xdoctest>=1.2"]
 docs = [
     "mkdocs>=1.6",
     "mkdocs-material>=9.5",

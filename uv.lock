@@ -2487,6 +2487,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "xdoctest" },
 ]
 docs = [
     { name = "mkdocs" },
@@ -2523,6 +2524,7 @@ requires-dist = [
     { name = "sherpa-onnx", specifier = ">=1.10" },
     { name = "sherpa-onnx-core" },
     { name = "soundfile" },
+    { name = "xdoctest", marker = "extra == 'dev'", specifier = ">=1.2" },
 ]
 provides-extras = ["gpu", "tts", "api", "all", "dev", "docs"]
 
@@ -3261,4 +3263,13 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5a/3a/68800d92e065cf4750ebecf973b13979c0c929b439e1293012938862038d/webdataset-1.0.2.tar.gz", hash = "sha256:7f0498be827cfa46cc5430a58768a24e2c6a410676a61be1838f53d61afdaab4", size = 80090, upload-time = "2025-06-19T23:26:21.945Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d9/00/aca6beb3658dab4ed3dbb41a78e6e7f31342e0b41d28088f205525751601/webdataset-1.0.2-py3-none-any.whl", hash = "sha256:3dbfced32b25c0d199c6b9787937b6f85742bc3c84f652c846893075c1c082d9", size = 74956, upload-time = "2025-06-19T23:26:20.354Z" },
+]
+
+[[package]]
+name = "xdoctest"
+version = "1.3.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3f/df/1b5751e3546967a4884cff6ea743b1e457d3f7c94fc35913f149a85734fc/xdoctest-1.3.2.tar.gz", hash = "sha256:bf6078c4fc0d60aafd8753fccdc435c95f26a640508e606d188d96f48359f0aa", size = 209923, upload-time = "2026-03-27T01:13:25.275Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/29/1d/6b9cf46122f2f07eab95c4af29ab5e29bd6674147a0b1e9a6d3929870af1/xdoctest-1.3.2-py3-none-any.whl", hash = "sha256:052118c8efb2b4cfb54485d328915b9e7b44da37c64b0998ca6aa21193dcb601", size = 146469, upload-time = "2026-03-27T01:13:23.417Z" },
 ]
