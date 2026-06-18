@@ -8,9 +8,35 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
+import sys
 from pathlib import Path
 
 import click
+
+
+def _use_color() -> bool:
+    """Return True if color output should be used (TTY and NO_COLOR unset)."""
+    return sys.stdout.isatty() and not os.environ.get("NO_COLOR")
+
+
+def _status_text(status: str) -> str:
+    """Format a status string with icon and optional color.
+
+    When color is disabled (non-TTY or NO_COLOR set), returns plain
+    ``"icon status"`` text identical to the previous non-color behavior.
+    """
+    icon = {"ready": "✓", "needs-download": "↓", "needs-api-key": "✗"}.get(status, "?")
+    if not _use_color():
+        return f"{icon} {status}"
+    color = {
+        "ready": "green",
+        "needs-download": "yellow",
+        "needs-api-key": "red",
+    }.get(status)
+    if color is None:
+        return f"{icon} {status}"
+    return click.style(f"{icon} {status}", fg=color)
 
 
 @click.group()
@@ -39,9 +65,33 @@ def cli(ctx, verbose, quiet) -> None:
 @cli.command()
 @click.option("--model", "-m", required=True, help="ASR model name (e.g. zipformer-v2)")
 @click.argument("audio_path", type=click.Path(exists=True))
-@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
-@click.option("--srt", "as_srt", is_flag=True, help="Output as SRT subtitles")
-def transcribe(model: str, audio_path: str, as_json: bool, as_srt: bool) -> None:
+@click.option(
+    "--format",
+    "-fmt",
+    "output_format",
+    type=click.Choice(["text", "json", "srt", "vtt"]),
+    default="text",
+    help="Output format (default: text).",
+)
+@click.option(
+    "--json",
+    "json_flag",
+    is_flag=True,
+    help="Deprecated: use --format json",
+)
+@click.option(
+    "--srt",
+    "srt_flag",
+    is_flag=True,
+    help="Deprecated: use --format srt",
+)
+def transcribe(
+    model: str,
+    audio_path: str,
+    output_format: str,
+    json_flag: bool,
+    srt_flag: bool,
+) -> None:
     """Transcribe an audio file to text."""
     from revospeech.asr import ASR
     from revospeech.exceptions import (
@@ -52,11 +102,17 @@ def transcribe(model: str, audio_path: str, as_json: bool, as_srt: bool) -> None
         RevosModelError,
     )
 
+    # Resolve deprecated --json / --srt flags to --format values.
+    if json_flag:
+        output_format = "json"
+    elif srt_flag:
+        output_format = "srt"
+
     try:
         asr = ASR(model)
         result = asr.transcribe(audio_path)
 
-        if as_json:
+        if output_format == "json":
             data = {
                 "text": result.text,
                 "segments": [
@@ -71,7 +127,7 @@ def transcribe(model: str, audio_path: str, as_json: bool, as_srt: bool) -> None
                 "language": result.language,
             }
             click.echo(json.dumps(data, indent=2, ensure_ascii=False))
-        elif as_srt:
+        elif output_format == "srt":
             for i, seg in enumerate(result.segments, 1):
                 start_ts = _format_srt_time(seg.start)
                 end_ts = _format_srt_time(seg.end)
@@ -79,7 +135,16 @@ def transcribe(model: str, audio_path: str, as_json: bool, as_srt: bool) -> None
                 click.echo(f"{start_ts} --> {end_ts}")
                 click.echo(seg.text)
                 click.echo()
-        else:
+        elif output_format == "vtt":
+            click.echo("WEBVTT")
+            click.echo()
+            for seg in result.segments:
+                start_ts = _format_vtt_time(seg.start)
+                end_ts = _format_vtt_time(seg.end)
+                click.echo(f"{start_ts} --> {end_ts}")
+                click.echo(seg.text)
+                click.echo()
+        else:  # text
             click.echo(result.text)
     except RevosConfigError as e:
         click.echo(f"Configuration error: {e}", err=True)
@@ -258,9 +323,6 @@ def models(
         )
         return
 
-    # Status icons
-    status_icon = {"ready": "✓", "needs-download": "↓", "needs-api-key": "✗"}
-
     # Table header
     click.echo(
         f"{'NAME':<20} {'TASK':<6} {'MODE':<7} {'STATUS':<16} {'SIZE':>8}  "
@@ -269,11 +331,10 @@ def models(
     click.echo("-" * 90)
 
     for m in model_list:
-        icon = status_icon.get(m.status, "?")
         size = f"{m.size_mb:.0f} MB" if m.size_mb else "—"
         langs = ",".join(m.languages[:3]) if m.languages else "—"
         caps = ",".join(m.capabilities[:3]) if m.capabilities else "—"
-        status_text = f"{icon} {m.status}"
+        status_text = _status_text(m.status)
         click.echo(
             f"{m.name:<20} {m.task:<6} {m.mode:<7} {status_text:<16} "
             f"{size:>8}  {langs:<15} {caps}"
@@ -292,8 +353,6 @@ def models_info(name: str) -> None:
         click.echo(f"Error: {e}", err=True)
         raise SystemExit(1)
 
-    status_icon = {"ready": "✓", "needs-download": "↓", "needs-api-key": "✗"}
-    icon = status_icon.get(m.status, "?")
     size = f"{m.size_mb:.0f} MB" if m.size_mb else "—"
     langs = ", ".join(m.languages) if m.languages else "—"
     caps = ", ".join(m.capabilities) if m.capabilities else "—"
@@ -301,7 +360,7 @@ def models_info(name: str) -> None:
     click.echo(f"  Model:        {m.name}")
     click.echo(f"  Task:         {m.task}")
     click.echo(f"  Mode:         {m.mode}")
-    click.echo(f"  Status:       {icon} {m.status}")
+    click.echo(f"  Status:       {_status_text(m.status)}")
     click.echo(f"  Size:         {size}")
     click.echo(f"  Languages:    {langs}")
     click.echo(f"  Capabilities: {caps}")
@@ -318,10 +377,11 @@ def search(query: str) -> None:
         click.echo(f"No models matching '{query}'.")
         return
 
-    status_icon = {"ready": "✓", "needs-download": "↓", "needs-api-key": "✗"}
+    # Status icon lookup shared with _status_text so coloring stays consistent.
+    status_icon_map = {"ready": "✓", "needs-download": "↓", "needs-api-key": "✗"}
     for m in results:
-        icon = status_icon.get(m.status, "?")
         size = f"{m.size_mb:.0f} MB" if m.size_mb else "—"
+        icon = status_icon_map.get(m.status, "?")
         click.echo(
             f"  {icon} {m.name:<20} {m.task:<6} {m.mode:<7} {m.status:<16} {size}"
         )
@@ -365,6 +425,40 @@ def info() -> None:
 @cli.group()
 def catalog() -> None:
     """Browse and pull models from the remote catalog."""
+
+
+@cli.group()
+def config() -> None:
+    """Manage API key and configuration."""
+
+
+@config.command("set-api-key")
+def config_set_api_key() -> None:
+    """Prompt for an API key and save it to the config file."""
+    from revospeech.config import get_api_key, set_api_key
+
+    if get_api_key():
+        click.echo("API key already set. Overwrite? [y/N] ", nl=False)
+        confirmation = click.get_text_stream("stdin").readline().strip().lower()
+        if confirmation not in ("y", "yes"):
+            click.echo("Aborted.")
+            return
+    key = click.prompt("Enter API key", hide_input=True, confirmation_prompt=True)
+    set_api_key(key)
+    click.echo("API key saved to ~/.config/revospeech/config.yaml")
+
+
+@config.command("show-api-key")
+def config_show_api_key() -> None:
+    """Show the currently configured API key (masked)."""
+    from revospeech.config import get_api_key
+
+    key = get_api_key()
+    if key:
+        masked = f"{key[:4]}...{key[-4:]}"
+        click.echo(f"API key: {masked} (set)")
+    else:
+        click.echo("API key: not set")
 
 
 @catalog.command("list")
@@ -470,6 +564,15 @@ def _format_srt_time(seconds: float) -> str:
     secs = int(seconds % 60)
     millis = int((seconds % 1) * 1000)
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+
+def _format_vtt_time(seconds: float) -> str:
+    """Format seconds as WebVTT timestamp (HH:MM:SS.mmm)."""
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    millis = int((seconds % 1) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}.{millis:03d}"
 
 
 if __name__ == "__main__":
