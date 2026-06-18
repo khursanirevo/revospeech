@@ -16,9 +16,7 @@ Speech recognition engines.
 
 ## BatchReport and BatchResult
 
-::: revospeech.asr.result.BatchReport
-
-::: revospeech.asr.result.BatchResult
+The batch result types are documented on the [Result types page](results.md#batchreport-batch-result).
 
 ## See also
 

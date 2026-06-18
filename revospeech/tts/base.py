@@ -8,6 +8,7 @@ import time
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import Any
 
 from revospeech.asr.result import BatchReport, BatchResult
 
@@ -142,7 +143,7 @@ class BaseTTS(ABC):
         except KeyError:
             return []
 
-    def synthesize_streaming(self, text: str, **kwargs):
+    def synthesize_streaming(self, text: str, **kwargs: Any):
         """Stream synthesis of text to audio.
 
         Override in subclasses that support streaming synthesis. The
@@ -251,7 +252,7 @@ class BaseTTS(ABC):
         *,
         max_workers: int = 4,
         on_error: str = "continue",
-        **kwargs,
+        **kwargs: Any,
     ) -> BatchReport:
         """Synthesize multiple texts in parallel.
 

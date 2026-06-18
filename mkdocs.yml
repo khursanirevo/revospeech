@@ -37,6 +37,7 @@ nav:
   - Quickstart: quickstart.md
   - CLI Reference: cli.md
   - Configuration: configuration.md
+  - Extension Guide: extension.md
   - API Reference:
       - Overview: api.md
       - ASR: api/asr.md

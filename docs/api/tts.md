@@ -10,7 +10,7 @@ Speech synthesis engines.
 
 ## Audio
 
-::: revospeech.tts.result.Audio
+The TTS result type is documented on the [Result types page](results.md#audio-tts-result).
 
 ## Helpers
 

@@ -4,11 +4,11 @@ Complete API reference organized by area. Click into each section for details.
 
 ## Areas
 
-- [ASR (Speech Recognition)](asr.md) — `ASR()`, `BaseASR`, streaming, language detection
-- [TTS (Speech Synthesis)](tts.md) — `TTS()`, `BaseTTS`, streaming, voice listing
-- [Registry](registry.md) — Model manifests, listing, search, status
-- [CLI](cli.md) — Command-line interface commands and flags
-- [Result Types](results.md) — `Transcript`, `Audio`, `BatchReport`, `Segment`
+- [ASR (Speech Recognition)](api/asr.md) — `ASR()`, `BaseASR`, streaming, language detection
+- [TTS (Speech Synthesis)](api/tts.md) — `TTS()`, `BaseTTS`, streaming, voice listing
+- [Registry](api/registry.md) — Model manifests, listing, search, status
+- [CLI](api/cli.md) — Command-line interface commands and flags
+- [Result Types](api/results.md) — `Transcript`, `Audio`, `BatchReport`, `Segment`
 
 ## Quick API lookup
 
