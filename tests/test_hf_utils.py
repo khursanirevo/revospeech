@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from revospeech.hf_utils import get_hf_user, wrap_hf_error
 
 
@@ -59,3 +61,50 @@ def test_get_hf_user_returns_none_when_not_dict():
     mock_api.whoami.return_value = "not a dict"
     with patch("huggingface_hub.HfApi", return_value=mock_api):
         assert get_hf_user() is None
+
+
+# ---------------------------------------------------------------------------
+# download_gated_model — happy path + auth error wrapping
+# ---------------------------------------------------------------------------
+def test_download_gated_model_success(tmp_path):
+    """Successful snapshot_download returns the local_dir path."""
+    from revospeech.hf_utils import download_gated_model
+
+    with patch("huggingface_hub.snapshot_download") as mock_dl:
+        result = download_gated_model("owner/model", tmp_path)
+    mock_dl.assert_called_once_with(repo_id="owner/model", local_dir=str(tmp_path))
+    assert result == tmp_path
+
+
+def test_download_gated_model_wraps_auth_error(tmp_path):
+    """401 errors from snapshot_download are wrapped as RuntimeError."""
+    from revospeech.hf_utils import download_gated_model
+
+    with patch(
+        "huggingface_hub.snapshot_download",
+        side_effect=Exception("401 unauthorized"),
+    ):
+        with pytest.raises(RuntimeError, match="huggingface-cli login"):
+            download_gated_model("owner/model", tmp_path)
+
+
+def test_download_gated_model_wraps_permission_error(tmp_path):
+    """403 errors from snapshot_download are wrapped as RuntimeError."""
+    from revospeech.hf_utils import download_gated_model
+
+    with patch(
+        "huggingface_hub.snapshot_download",
+        side_effect=Exception("403 Forbidden"),
+    ):
+        with pytest.raises(RuntimeError, match="Access denied"):
+            download_gated_model("owner/model", tmp_path)
+
+
+def test_download_gated_model_passes_through_unknown_error(tmp_path):
+    """Non-auth errors are re-raised unchanged."""
+    from revospeech.hf_utils import download_gated_model
+
+    original = ConnectionError("network timeout")
+    with patch("huggingface_hub.snapshot_download", side_effect=original):
+        with pytest.raises(ConnectionError, match="network timeout"):
+            download_gated_model("owner/model", tmp_path)
