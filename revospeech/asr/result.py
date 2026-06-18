@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import json
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 
@@ -16,6 +17,15 @@ class Segment:
     confidence: float
 
 
+def _format_timestamp(seconds: float, separator: str = ",") -> str:
+    """Format seconds as HH:MM:SS{separator}mmm."""
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    millis = int((seconds % 1) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}{separator}{millis:03d}"
+
+
 @dataclass
 class Transcript:
     """Full transcription result from ASR."""
@@ -23,6 +33,70 @@ class Transcript:
     text: str
     segments: list[Segment]
     language: str
+
+    @property
+    def duration(self) -> float:
+        """Total transcript duration in seconds based on segment timings."""
+        if not self.segments:
+            return 0.0
+        return max(seg.end for seg in self.segments) - min(
+            seg.start for seg in self.segments
+        )
+
+    def save(self, path: str | Path) -> None:
+        """Save transcript to a file.
+
+        Format is determined by file extension:
+        - .txt: plain text
+        - .json: structured JSON with text, segments, language
+        - .srt: SubRip subtitle format
+        - .vtt: WebVTT format
+
+        Args:
+            path: Output file path.
+        """
+        p = Path(path)
+        ext = p.suffix.lower()
+
+        if ext == ".txt":
+            p.write_text(self.text, encoding="utf-8")
+        elif ext == ".json":
+            payload = {
+                "text": self.text,
+                "segments": [asdict(seg) for seg in self.segments],
+                "language": self.language,
+            }
+            p.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+        elif ext == ".srt":
+            lines: list[str] = []
+            for i, seg in enumerate(self.segments, start=1):
+                start = _format_timestamp(seg.start, separator=",")
+                end = _format_timestamp(seg.end, separator=",")
+                lines.append(f"{i}")
+                lines.append(f"{start} --> {end}")
+                lines.append(seg.text.strip())
+                lines.append("")
+            p.write_text("\n".join(lines), encoding="utf-8")
+        elif ext == ".vtt":
+            lines = ["WEBVTT", ""]
+            for seg in self.segments:
+                start = _format_timestamp(seg.start, separator=".")
+                end = _format_timestamp(seg.end, separator=".")
+                lines.append(f"{start} --> {end}")
+                lines.append(seg.text.strip())
+                lines.append("")
+            p.write_text("\n".join(lines), encoding="utf-8")
+        else:
+            raise ValueError(f"Unsupported transcript format: {ext}")
+
+    def __repr__(self) -> str:
+        preview = self.text[:40]
+        return (
+            f"Transcript(text=\"{preview}...\", duration={self.duration:.1f}s, "
+            f"segments={len(self.segments)})"
+        )
 
 
 @dataclass

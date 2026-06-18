@@ -64,3 +64,9 @@ class Audio:
             parts.append(seg.samples)
 
         return Audio(samples=np.concatenate(parts), sample_rate=sr)
+
+    def __repr__(self) -> str:
+        return (
+            f"Audio(duration={self.duration:.1f}s, "
+            f"sample_rate={self.sample_rate}Hz, samples={len(self.samples)})"
+        )
