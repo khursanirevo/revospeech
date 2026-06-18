@@ -267,8 +267,8 @@ def test_search_models_matches_by_language():
 
 def test_search_models_partial_name_match_scores_higher_than_unrelated():
     """Direct name substring match scores higher than fuzzy unrelated names."""
-    from revospeech.registry.registry import _models, register
     from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register
     from revospeech.registry.status import ModelStatus
 
     saved = dict(_models)
@@ -334,9 +334,7 @@ def test_search_models_partial_name_match_scores_higher_than_unrelated():
             assert "zipformer-v2" in names
             if "totally-unrelated" in names:
                 # If both matched, zipformer-v2 must rank first.
-                assert names.index("zipformer-v2") < names.index(
-                    "totally-unrelated"
-                )
+                assert names.index("zipformer-v2") < names.index("totally-unrelated")
         finally:
             status_mod.list_model_statuses = orig
     finally:
