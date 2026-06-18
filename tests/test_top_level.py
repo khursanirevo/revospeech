@@ -154,3 +154,191 @@ def test_check_model_missing_raises_key_error():
 
     with pytest.raises((KeyError, LookupError)):
         revospeech.check_model("this-model-does-not-exist-xyz-999")
+
+
+# ---------------------------------------------------------------------------
+# search_models scoring paths — name, capabilities, languages
+# ---------------------------------------------------------------------------
+def test_search_models_matches_by_capability():
+    """Capabilities substring match contributes to the score."""
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register
+    from revospeech.registry.status import ModelStatus
+
+    saved = dict(_models)
+    _models.clear()
+    try:
+        register(
+            ModelManifest(
+                name="weird-name-xyz",
+                task="asr",
+                backend="sherpa-onnx",
+                model_type="transducer",
+                model_url="",
+                sample_rate=16000,
+                language="en",
+                description="",
+                capabilities=["streaming"],
+                languages=["en"],
+                files={},
+            )
+        )
+
+        import revospeech as rs
+
+        # Stub list_model_statuses so search sees our model with capabilities.
+        from revospeech.registry import status as status_mod
+
+        fake = [
+            ModelStatus(
+                name="weird-name-xyz",
+                task="asr",
+                mode="local",
+                status="ready",
+                installed=True,
+                size_mb=10.0,
+                capabilities=["streaming"],
+                languages=["en"],
+            )
+        ]
+        orig = status_mod.list_model_statuses
+        status_mod.list_model_statuses = lambda **kw: fake
+        try:
+            results = rs.search_models("stream")
+            assert any(m.name == "weird-name-xyz" for m in results)
+        finally:
+            status_mod.list_model_statuses = orig
+    finally:
+        _models.clear()
+        _models.update(saved)
+
+
+def test_search_models_matches_by_language():
+    """Languages substring match contributes to the score."""
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register
+    from revospeech.registry.status import ModelStatus
+
+    saved = dict(_models)
+    _models.clear()
+    try:
+        register(
+            ModelManifest(
+                name="zzz-obscure",
+                task="asr",
+                backend="sherpa-onnx",
+                model_type="transducer",
+                model_url="",
+                sample_rate=16000,
+                language="en",
+                description="",
+                capabilities=[],
+                languages=["fr"],
+                files={},
+            )
+        )
+
+        import revospeech as rs
+        from revospeech.registry import status as status_mod
+
+        fake = [
+            ModelStatus(
+                name="zzz-obscure",
+                task="asr",
+                mode="local",
+                status="ready",
+                installed=True,
+                size_mb=10.0,
+                capabilities=[],
+                languages=["fr"],
+            )
+        ]
+        orig = status_mod.list_model_statuses
+        status_mod.list_model_statuses = lambda **kw: fake
+        try:
+            results = rs.search_models("fr")
+            assert any(m.name == "zzz-obscure" for m in results)
+        finally:
+            status_mod.list_model_statuses = orig
+    finally:
+        _models.clear()
+        _models.update(saved)
+
+
+def test_search_models_partial_name_match_scores_higher_than_unrelated():
+    """Direct name substring match scores higher than fuzzy unrelated names."""
+    from revospeech.registry.registry import _models, register
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.status import ModelStatus
+
+    saved = dict(_models)
+    _models.clear()
+    try:
+        register(
+            ModelManifest(
+                name="zipformer-v2",
+                task="asr",
+                backend="sherpa-onnx",
+                model_type="transducer",
+                model_url="",
+                sample_rate=16000,
+                language="en",
+                description="",
+                files={},
+            )
+        )
+        register(
+            ModelManifest(
+                name="totally-unrelated",
+                task="asr",
+                backend="sherpa-onnx",
+                model_type="transducer",
+                model_url="",
+                sample_rate=16000,
+                language="en",
+                description="",
+                files={},
+            )
+        )
+
+        import revospeech as rs
+        from revospeech.registry import status as status_mod
+
+        fake = [
+            ModelStatus(
+                name="zipformer-v2",
+                task="asr",
+                mode="local",
+                status="ready",
+                installed=True,
+                size_mb=10.0,
+                capabilities=[],
+                languages=["en"],
+            ),
+            ModelStatus(
+                name="totally-unrelated",
+                task="asr",
+                mode="local",
+                status="ready",
+                installed=True,
+                size_mb=10.0,
+                capabilities=[],
+                languages=["en"],
+            ),
+        ]
+        orig = status_mod.list_model_statuses
+        status_mod.list_model_statuses = lambda **kw: fake
+        try:
+            results = rs.search_models("zip")
+            names = [m.name for m in results]
+            assert "zipformer-v2" in names
+            if "totally-unrelated" in names:
+                # If both matched, zipformer-v2 must rank first.
+                assert names.index("zipformer-v2") < names.index(
+                    "totally-unrelated"
+                )
+        finally:
+            status_mod.list_model_statuses = orig
+    finally:
+        _models.clear()
+        _models.update(saved)
