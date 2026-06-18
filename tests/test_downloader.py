@@ -202,3 +202,56 @@ def test_download_rejects_ftp_scheme(tmp_path: Path):
     dest = tmp_path / "file.tar.bz2"
     with pytest.raises(ValueError, match="Invalid model URL scheme"):
         _download("ftp://example.com/model.tar.bz2", dest)
+
+
+def test_progress_hook_with_known_size(capsys):
+    """_progress_hook renders a progress bar when total_size is known."""
+    from revospeech.registry.downloader import _progress_hook
+
+    _progress_hook(0, 1024, 4096)
+    _progress_hook(3, 1024, 4096)  # 100% — should emit newline
+    captured = capsys.readouterr()
+    assert "[" in captured.err
+    assert "MB" in captured.err
+
+
+def test_progress_hook_with_unknown_size(capsys):
+    """_progress_hook shows 'Downloading:' when total_size is 0."""
+    from revospeech.registry.downloader import _progress_hook
+
+    _progress_hook(1, 1024, 0)
+    captured = capsys.readouterr()
+    assert "Downloading:" in captured.err
+
+
+def test_download_without_tqdm_uses_progress_hook(tmp_path):
+    """_download falls back to _progress_hook when tqdm is unavailable."""
+    dest = tmp_path / "out.bin"
+
+    with (
+        patch("urllib.request.urlretrieve") as mock_urlretrieve,
+        patch("revospeech.registry.downloader._progress_hook") as mock_hook,
+    ):
+        # Force tqdm = None path
+        import sys
+
+        original = sys.modules.get("tqdm")
+        sys.modules["tqdm"] = None  # type: ignore[assignment]
+        try:
+            _download("http://example.com/out.bin", dest)
+        finally:
+            if original is not None:
+                sys.modules["tqdm"] = original
+            else:
+                del sys.modules["tqdm"]
+    mock_urlretrieve.assert_called_once()
+    args, kwargs = mock_urlretrieve.call_args
+    assert kwargs["reporthook"] is mock_hook
+
+
+def test_find_model_dir_fallback_no_match(tmp_path):
+    """_find_model_dir returns extract_dir when no files match."""
+    manifest = _make_manifest()
+    # Don't create any expected files
+    result = _find_model_dir(tmp_path, manifest)
+    assert result == tmp_path
