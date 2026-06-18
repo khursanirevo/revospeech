@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import numpy as np
 
@@ -95,7 +96,7 @@ class RevoVoiceTTS(BaseTTS):
     def synthesize(
         self,
         text: str,
-        output_path: str | None = None,
+        output_path: str | Path | None = None,
         *,
         speed: float = 1.0,
         ref_audio: str | None = None,

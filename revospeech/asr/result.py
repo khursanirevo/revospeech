@@ -137,15 +137,9 @@ class BatchReport:
 
     def save(self, path: str | Path) -> None:
         """Save batch report to JSON file."""
-        data = {
-            "total": self.total,
-            "succeeded": self.succeeded,
-            "failed": self.failed,
-            "total_duration": self.total_duration,
-            "items": [],
-        }
+        items: list[dict[str, object]] = []
         for item in self.items:
-            item_data = {
+            item_data: dict[str, object] = {
                 "input": str(item.input),
                 "duration": item.duration,
                 "error": item.error,
@@ -158,8 +152,15 @@ class BatchReport:
                     }
                 else:
                     item_data["result"] = {"type": type(item.result).__name__}
-            data["items"].append(item_data)
+            items.append(item_data)
 
+        data = {
+            "total": self.total,
+            "succeeded": self.succeeded,
+            "failed": self.failed,
+            "total_duration": self.total_duration,
+            "items": items,
+        }
         Path(path).write_text(
             json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
         )

@@ -41,5 +41,5 @@ def configure_logging(level: str = "WARNING") -> None:
         handler.setFormatter(formatter)
         logger.addHandler(handler)
     else:
-        for handler in logger.handlers:
-            handler.setLevel(numeric)
+        for existing_handler in logger.handlers:
+            existing_handler.setLevel(numeric)

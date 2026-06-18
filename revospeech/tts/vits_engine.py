@@ -208,7 +208,7 @@ class VitsTTS(BaseTTS):
     def synthesize(
         self,
         text: str,
-        output_path: str | None = None,
+        output_path: str | Path | None = None,
         *,
         speed: float = 1.0,
         speaker: str = "sarah",
@@ -226,8 +226,8 @@ class VitsTTS(BaseTTS):
 
         for phonemes in sentences:
             phoneme_ids = _phonemes_to_ids(phonemes, phoneme_map)
-            audio = self._synthesize_ids(sess, phoneme_ids, config, speed=speed)
-            all_samples.append(audio)
+            chunk = self._synthesize_ids(sess, phoneme_ids, config, speed=speed)
+            all_samples.append(chunk)
             if num_silence_samples > 0:
                 all_samples.append(np.zeros(num_silence_samples, dtype=np.float32))
 

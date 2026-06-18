@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import sherpa_onnx
 
@@ -74,7 +75,7 @@ class SherpaOnnxASR(BaseASR):
                 device=self.device,
             )
 
-    def transcribe(self, audio_path: str) -> Transcript:
+    def transcribe(self, audio_path: str | Path) -> Transcript:
         """Transcribe an audio file using sherpa-onnx.
 
         Args:

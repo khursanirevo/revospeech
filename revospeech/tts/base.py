@@ -252,7 +252,9 @@ class BaseTTS(ABC):
                     out_path = None
                 audio = self.synthesize(text, out_path, **kwargs)
                 elapsed = time.perf_counter() - t0
-                return idx, BatchResult(input=text, result=audio, duration=elapsed)
+                # BatchResult is shared with ASR (Transcript | None);
+                # TTS engines store Audio here.
+                return idx, BatchResult(input=text, result=audio, duration=elapsed)  # type: ignore[arg-type]
             except Exception as e:
                 elapsed = time.perf_counter() - t0
                 return idx, BatchResult(input=text, error=str(e), duration=elapsed)

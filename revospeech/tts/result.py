@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import soundfile as sf
@@ -15,13 +16,13 @@ class Audio:
     samples: np.ndarray
     sample_rate: int
 
-    def save(self, path: str) -> None:
+    def save(self, path: str | Path) -> None:
         """Save audio to a file.
 
         Args:
             path: Output file path (e.g., "output.wav").
         """
-        sf.write(path, self.samples, self.sample_rate)
+        sf.write(str(path), self.samples, self.sample_rate)
 
     @property
     def duration(self) -> float:

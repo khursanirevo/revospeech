@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import numpy as np
 import soundfile as sf
@@ -10,7 +11,7 @@ import soundfile as sf
 logger = logging.getLogger(__name__)
 
 
-def read_waveform(path: str, target_sr: int = 16000) -> tuple[np.ndarray, int]:
+def read_waveform(path: str | Path, target_sr: int = 16000) -> tuple[np.ndarray, int]:
     """Read an audio file and return mono float32 samples at target sample rate.
 
     Args:
@@ -20,7 +21,7 @@ def read_waveform(path: str, target_sr: int = 16000) -> tuple[np.ndarray, int]:
     Returns:
         Tuple of (samples as float32 ndarray, sample_rate).
     """
-    data, sr = sf.read(path, dtype="float32")
+    data, sr = sf.read(str(path), dtype="float32")
 
     # Convert to mono if stereo
     if data.ndim > 1:
