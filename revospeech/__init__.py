@@ -11,7 +11,7 @@ Quick start:
     >>> audio = TTS().synthesize('Hello, world!')
     >>> audio.save('out.wav')
 
-See https://github.com/khursanirevo/revospeech for full docs.
+See https://github.com/revolab/revospeech for full docs.
 """
 
 try:

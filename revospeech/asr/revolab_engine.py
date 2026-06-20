@@ -1,9 +1,4 @@
-"""Revolab cloud API backend for ASR.
-
-SKELETON: actual endpoint paths and response schemas pending
-API contract finalization. The infrastructure (auth, retries, error
-mapping) is in place via RevolabClient.
-"""
+"""Revolab cloud API backend for ASR."""
 
 from __future__ import annotations
 
@@ -47,55 +42,63 @@ class RevolabASR(BaseASR):
     ) -> Transcript:
         """Transcribe audio via revolab API.
 
-        SKELETON: endpoint path pending contract finalization.
+        Sends raw audio bytes to POST /recognize with Content-Type: audio/wav.
         """
         audio_str = audio_path if isinstance(audio_path, str) else str(audio_path)
 
         logger.info("Uploading %s to revolab ASR API", audio_str)
 
-        with open(audio_str, "rb") as f:
-            files = {"audio": (Path(audio_str).name, f, "audio/wav")}
-            data = {
-                "language": language or "",
-                "word_timestamps": str(word_timestamps).lower(),
-            }
-            try:
-                response = self._client.post(
-                    "/asr/transcribe",  # TODO: confirm actual path
-                    files=files,
-                    data=data,
-                )
-            except RevosEngineError:
-                raise
-            except Exception as e:
-                raise RevosEngineError(
-                    f"ASR API call failed: {e}",
-                    suggestion="Check network connectivity and API status.",
-                ) from e
+        try:
+            with open(audio_str, "rb") as f:
+                audio_bytes = f.read()
+        except OSError as e:
+            raise RevosEngineError(
+                f"Cannot read audio file: {audio_str}: {e}",
+                suggestion="Check the file path and permissions.",
+            ) from e
+
+        try:
+            response = self._client.post(
+                "/recognize",
+                content=audio_bytes,
+                headers={"Content-Type": "audio/wav"},
+            )
+        except RevosEngineError:
+            raise
+        except Exception as e:
+            raise RevosEngineError(
+                f"ASR API call failed: {e}",
+                suggestion="Check network connectivity and API status.",
+            ) from e
 
         return self._parse_response(response)
 
     def _parse_response(self, response: dict) -> Transcript:
         """Parse API response into Transcript.
 
-        SKELETON: schema pending contract.
+        Response: status, text, session_id, duration_s, confidence, rtf.
         """
-        # TODO: replace with actual schema once contract is finalized
-        text = response.get("text", "")
-        segments_data = response.get("segments", [])
-        segments = [
-            Segment(
-                start=seg.get("start", 0.0),
-                end=seg.get("end", 0.0),
-                text=seg.get("text", ""),
-                confidence=seg.get("confidence", 0.0),
+        status = response.get("status", "")
+        if status and status != "success":
+            raise RevosEngineError(
+                f"ASR API returned non-success status: {status}",
+                suggestion="Retry the request or contact revolab support.",
             )
-            for seg in segments_data
-        ]
+
+        text = response.get("text", "")
+        duration = response.get("duration_s", 0.0)
+        confidence = response.get("confidence", 0.0)
+
+        segment = Segment(
+            start=0.0,
+            end=duration,
+            text=text,
+            confidence=confidence,
+        )
         return Transcript(
             text=text,
-            segments=segments,
-            language=response.get("language", "en"),
+            segments=[segment],
+            language=response.get("language", ""),
         )
 
     def close(self) -> None:

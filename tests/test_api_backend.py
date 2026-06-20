@@ -96,19 +96,20 @@ def test_revolab_asr_parse_response():
     engine.device = "cpu"
 
     fake_response = {
+        "status": "success",
         "text": "hello world",
-        "language": "en",
-        "segments": [
-            {"start": 0.0, "end": 1.0, "text": "hello", "confidence": 0.95},
-            {"start": 1.0, "end": 2.0, "text": "world", "confidence": 0.93},
-        ],
+        "session_id": "abc-123",
+        "duration_s": 4.55,
+        "confidence": 0.9064,
+        "rtf": 0.0218,
     }
 
     result = engine._parse_response(fake_response)
     assert result.text == "hello world"
-    assert result.language == "en"
-    assert len(result.segments) == 2
-    assert result.segments[0].text == "hello"
+    assert len(result.segments) == 1
+    assert result.segments[0].text == "hello world"
+    assert result.segments[0].end == 4.55
+    assert result.segments[0].confidence == 0.9064
 
 
 def test_revolab_asr_parse_response_empty():
@@ -120,8 +121,20 @@ def test_revolab_asr_parse_response_empty():
 
     result = engine._parse_response({})
     assert result.text == ""
-    assert result.segments == []
-    assert result.language == "en"
+    assert len(result.segments) == 1
+    assert result.segments[0].text == ""
+
+
+def test_revolab_asr_parse_response_non_success():
+    from revospeech.asr.revolab_engine import RevolabASR
+    from revospeech.exceptions import RevosEngineError
+
+    engine = RevolabASR.__new__(RevolabASR)
+    engine.model_name = "test"
+    engine.device = "cpu"
+
+    with pytest.raises(RevosEngineError, match="non-success"):
+        engine._parse_response({"status": "error", "text": ""})
 
 
 def test_revolab_tts_fetch_audio_from_base64():
@@ -384,11 +397,10 @@ def test_revolab_asr_transcribe_calls_api(monkeypatch, tmp_path):
         def post(self, path, **kwargs):
             self.calls.append((path, kwargs))
             return {
+                "status": "success",
                 "text": "hello world",
-                "language": "en",
-                "segments": [
-                    {"start": 0.0, "end": 1.0, "text": "hello", "confidence": 0.9}
-                ],
+                "duration_s": 1.0,
+                "confidence": 0.9,
             }
 
         def close(self):
@@ -398,9 +410,11 @@ def test_revolab_asr_transcribe_calls_api(monkeypatch, tmp_path):
 
     result = engine.transcribe(str(wav), language="en", word_timestamps=True)
     assert result.text == "hello world"
-    assert result.language == "en"
     assert len(result.segments) == 1
-    assert engine._client.calls[0][0] == "/asr/transcribe"
+    assert engine._client.calls[0][0] == "/recognize"
+    assert (
+        engine._client.calls[0][1].get("headers", {}).get("Content-Type") == "audio/wav"
+    )
 
 
 def test_revolab_asr_transcribe_wraps_errors(tmp_path):
