@@ -265,7 +265,7 @@ def test_tts_with_api_key_persists(monkeypatch):
     _register_vits()
     from revospeech.tts import TTS
 
-    TTS("test-vits", api_key="rv-test12345")
+    TTS("test-vits", api_key="rv-test12345", auto_download=False)
     assert captured == ["rv-test12345"]
 
 
