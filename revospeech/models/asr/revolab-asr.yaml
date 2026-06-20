@@ -7,7 +7,7 @@ model_url: ""
 api_endpoint: "https://api.revolab.ai/v1"
 sample_rate: 16000
 language: "ms"
-description: "Revolab cloud ASR — Malaysian-Qwen3-ASR-1.7B fine-tuned for Malaysian speech (8.25% WER). Code-switching, telephony, and accents handled."
+description: "Revolab cloud ASR powered by Malaysian-Qwen3-ASR-1.7B (private). 8.25% overall WER, 6.2% on telephony. Handles code-switching, accents, and noise."
 capabilities:
   - streaming
 languages:
