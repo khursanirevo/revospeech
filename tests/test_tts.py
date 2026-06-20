@@ -229,7 +229,7 @@ def test_vits_factory_dispatch():
     from revospeech.tts import TTS
     from revospeech.tts.vits_engine import VitsTTS
 
-    engine = TTS("test-vits")
+    engine = TTS("test-vits", auto_download=False)
     assert isinstance(engine, VitsTTS)
 
 
