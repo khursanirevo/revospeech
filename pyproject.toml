@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "revospeech"
 version = "0.1.1"
-description = "A unified Python library for speech AI — ASR and TTS using open models"
+description = "A unified Python library for speech AI — ASR, TTS, and speech restoration using open models"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -13,7 +13,7 @@ requires-python = ">=3.11"
 authors = [
     { name = "RevoSpeech Team" },
 ]
-keywords = ["speech", "asr", "tts", "stt", "voice", "sherpa-onnx", "zipformer", "omnivoice"]
+keywords = ["speech", "asr", "tts", "stt", "voice", "speech-restoration", "sherpa-onnx", "zipformer", "omnivoice", "sidon"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -32,7 +32,6 @@ classifiers = [
 
 dependencies = [
     "sherpa-onnx>=1.10",
-    "sherpa-onnx-core",
     "onnxruntime>=1.16",
     "numpy",
     "soundfile",
@@ -67,6 +66,9 @@ revospeech = "revospeech.cli.main:cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["revospeech"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"revospeech/util/assets/mel_frontend.onnx" = "revospeech/util/assets/mel_frontend.onnx"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

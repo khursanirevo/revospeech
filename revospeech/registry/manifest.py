@@ -16,7 +16,7 @@ class ModelManifest:
     """
 
     name: str
-    task: str  # "asr" or "tts"
+    task: str  # "asr", "tts", or "util"
     backend: str  # e.g. "sherpa-onnx"
     model_type: str  # e.g. "transducer", "vits", "kokoro"
     model_url: str

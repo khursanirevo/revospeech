@@ -85,6 +85,7 @@ def TTS(
     api_key: str | None = None,
     *,
     auto_download: bool = True,
+    restore: bool = False,
 ) -> BaseTTS:
     """Create a TTS engine for the given model.
 
@@ -97,6 +98,9 @@ def TTS(
         api_key: If provided, persists it via ``set_api_key`` before loading.
         auto_download: If True (default), automatically download local models
             that are not yet cached before constructing the engine.
+        restore: If True, apply any ready util model tagged
+            ``tts-postprocess`` (e.g. Sidon speech restoration) to every
+            ``synthesize()`` output. Off by default — opt in per-call.
 
     Returns:
         A BaseTTS instance ready for synthesis.
@@ -187,11 +191,84 @@ def TTS(
     if manifest.backend == "revovoice":
         from .revovoice_engine import RevoVoiceTTS
 
-        return RevoVoiceTTS(model_name, device)
+        engine = RevoVoiceTTS(model_name, device)
+    else:
+        from .vits_engine import VitsTTS
 
-    from .vits_engine import VitsTTS
+        engine = VitsTTS(model_name, device)
 
-    return VitsTTS(model_name, device)
+    if restore:
+        engine = _attach_post_processors(engine, device)
+    return engine
+
+
+def _attach_post_processors(engine: BaseTTS, device: str) -> BaseTTS:
+    """Wrap engine.synthesize so any ready util tagged tts-postprocess runs after."""
+    try:
+        from revospeech.registry import list_models
+        from revospeech.registry.status import check_model
+        from revospeech.util import Util
+
+        candidates = [
+            m for m in list_models()
+            if m.task == "util" and "tts-postprocess" in (m.tags or [])
+        ]
+        ready: list = []
+        for m in candidates:
+            try:
+                if check_model(m.name, task=m.task).status == "ready":
+                    ready.append(m)
+            except Exception:
+                continue
+        if not ready:
+            return engine
+
+        post_processors = []
+        for m in ready:
+            try:
+                post_processors.append(Util(m.name, device=device, auto_download=False))
+                logger.info(
+                    "Attached post-processor '%s' to TTS engine '%s'",
+                    m.name, engine.model_name,
+                )
+            except Exception as e:
+                logger.warning("Failed to load util '%s': %s", m.name, e)
+        if not post_processors:
+            return engine
+
+        engine._post_processors = post_processors
+        original_synthesize = engine.synthesize
+
+        import inspect
+
+        bound_sig = inspect.signature(original_synthesize)
+
+        def synthesize_with_restore(*args, **kwargs):
+            audio = original_synthesize(*args, **kwargs)
+            try:
+                bound = bound_sig.bind(*args, **kwargs)
+                bound.apply_defaults()
+                output_path = bound.arguments.get("output_path")
+            except TypeError:
+                output_path = kwargs.get("output_path")
+            for proc in post_processors:
+                try:
+                    audio = proc.restore(audio)
+                except Exception as e:
+                    logger.warning(
+                        "Post-processor '%s' failed: %s — returning unenhanced audio",
+                        proc.model_name, e,
+                    )
+                    return audio
+            if output_path:
+                audio.save(output_path)
+            return audio
+
+        engine.synthesize = synthesize_with_restore  # type: ignore[method-assign]
+        return engine
+    except Exception as e:
+        logger.debug("Post-processor attach skipped: %s", e)
+        return engine
 
 
 __all__ = ["TTS", "BaseTTS", "Audio"]

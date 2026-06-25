@@ -1190,3 +1190,310 @@ def test_tts_factory_dispatches_to_revovoice(monkeypatch):
     finally:
         _models.clear()
         _models.update(saved)
+
+
+# ---------------------------------------------------------------------------
+# revospeech.util — util model factory + manifest integration
+# ---------------------------------------------------------------------------
+def test_sidon_manifest_loads_with_util_task():
+    """Sidon util manifest loads and exposes the right metadata."""
+    from revospeech.registry import get
+    from revospeech.registry.registry import _load_builtin_manifests, _models
+
+    if not any(m.name == "sidon" and m.task == "util" for m in _models.values()):
+        _load_builtin_manifests()
+
+    m = get("sidon", "util")
+    assert m.backend == "sidon"
+    assert m.task == "util"
+    assert "tts-postprocess" in m.tags
+    assert m.files["predictor"].endswith("sidon-predictor.onnx")
+    assert m.files["vocoder"].endswith("sidon-vocoder.onnx")
+
+
+def test_util_factory_rejects_unknown_backend():
+    """Util() raises ValueError on unsupported backends."""
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register
+
+    saved = dict(_models)
+    _models.clear()
+    register(
+        ModelManifest(
+            name="bogus-util",
+            task="util",
+            backend="bogus",
+            model_type="restoration",
+            model_url="",
+            sample_rate=48000,
+            language="",
+            description="",
+            files={},
+        )
+    )
+    try:
+        from revospeech.util import Util
+
+        with pytest.raises(ValueError, match="Unknown util backend"):
+            Util("bogus-util")
+    finally:
+        _models.clear()
+        _models.update(saved)
+
+
+def test_util_factory_rejects_api_mode():
+    """Util() raises NotImplementedError for API-mode manifests."""
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register
+
+    saved = dict(_models)
+    _models.clear()
+    register(
+        ModelManifest(
+            name="api-util",
+            task="util",
+            backend="sidon",
+            model_type="restoration",
+            model_url="",
+            sample_rate=48000,
+            language="",
+            description="",
+            mode="api",
+            api_endpoint="https://example.com",
+            files={},
+        )
+    )
+    try:
+        from revospeech.util import Util
+
+        with pytest.raises(NotImplementedError, match="API-mode util"):
+            Util("api-util")
+    finally:
+        _models.clear()
+        _models.update(saved)
+
+
+def test_baseutil_requires_restore_method():
+    """BaseUtil subclasses must implement restore()."""
+    from revospeech.util.base import BaseUtil
+
+    with pytest.raises(TypeError, match="abstract method"):
+        BaseUtil("any")  # type: ignore[abstract]
+
+
+def test_attach_post_processors_safe_with_no_ready(monkeypatch):
+    """_attach_post_processors returns engine unchanged when no ready util."""
+    from revospeech.tts import _attach_post_processors
+    from revospeech.tts.base import BaseTTS
+    from revospeech.tts.result import Audio
+    import numpy as np
+
+    class FakeEngine(BaseTTS):
+        def __init__(self):
+            super().__init__("fake")
+            self._post_processors = []
+
+        def synthesize(self, text, output_path=None, **kwargs):
+            return Audio(samples=np.zeros(16000, dtype="float32"), sample_rate=16000)
+
+    monkeypatch.setattr(
+        "revospeech.registry.list_models",
+        lambda: [],
+    )
+
+    engine = FakeEngine()
+    wrapped = _attach_post_processors(engine, "cpu")
+    assert wrapped is engine
+    assert wrapped._post_processors == []
+
+
+def test_sidonutil_resample_linear_is_identity_at_same_rate():
+    """_resample_linear is a no-op when source and dest rates match."""
+    from revospeech.util.sidon_engine import _resample_linear
+    import numpy as np
+
+    samples = np.array([0.1, -0.2, 0.3, 0.0], dtype=np.float32)
+    out = _resample_linear(samples, 16000, 16000)
+    assert np.array_equal(out, samples)
+
+
+def test_bundled_mel_frontend_asset_exists():
+    """The bundled mel_frontend.onnx asset is shipped with the package."""
+    from revospeech.util.sidon_engine import _bundled_mel_frontend_path
+
+    path = _bundled_mel_frontend_path()
+    assert path.exists(), f"Bundled mel_frontend.onnx missing at {path}"
+    assert path.stat().st_size > 100_000  # ~1.1 MB
+
+
+# ---------------------------------------------------------------------------
+# revospeech.util — additional coverage: factory happy path, base helpers
+# ---------------------------------------------------------------------------
+def test_util_factory_dispatches_to_sidon(monkeypatch):
+    """Util() routes to SidonUtil when backend='sidon' and status is ready."""
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register
+
+    saved = dict(_models)
+    _models.clear()
+    register(
+        ModelManifest(
+            name="sidon-test",
+            task="util",
+            backend="sidon",
+            model_type="restoration",
+            model_url="org/m",
+            sample_rate=48000,
+            language="",
+            description="",
+            files={"predictor": "p.onnx", "vocoder": "v.onnx"},
+        )
+    )
+    try:
+        captured = {}
+
+        class FakeUtil:
+            def __init__(self, name, device="auto", auto_download=True):
+                captured["name"] = name
+                captured["device"] = device
+
+        import revospeech.util.sidon_engine as sidon_mod
+
+        monkeypatch.setattr(sidon_mod, "SidonUtil", FakeUtil)
+
+        from revospeech.util import Util
+
+        Util("sidon-test", device="cpu", auto_download=False)
+        assert captured == {
+            "name": "sidon-test",
+            "device": "cpu",
+        }
+    finally:
+        _models.clear()
+        _models.update(saved)
+
+
+def test_baseutil_restore_file_roundtrip(tmp_path):
+    """BaseUtil.restore_file() reads audio, calls restore, writes output."""
+    import numpy as np
+    import soundfile as sf
+    from revospeech.tts.result import Audio
+    from revospeech.util.base import BaseUtil
+
+    class Upper(BaseUtil):
+        def restore(self, audio):
+            return Audio(samples=audio.samples * 2, sample_rate=audio.sample_rate)
+
+    # Write a test wav
+    sr = 16000
+    samples = np.array([0.1, -0.2, 0.3, 0.0], dtype=np.float32)
+    in_path = tmp_path / "in.wav"
+    sf.write(str(in_path), samples, sr)
+
+    out_path = tmp_path / "out.wav"
+    u = Upper("dummy")
+    result = u.restore_file(str(in_path), str(out_path))
+
+    assert result.sample_rate == sr
+    assert np.allclose(result.samples, samples * 2, atol=1e-3)
+    # Output file should exist with the doubled samples
+    out_samples, out_sr = sf.read(str(out_path), dtype="float32")
+    assert out_sr == sr
+    assert np.allclose(out_samples, samples * 2, atol=1e-3)
+
+
+def test_attach_post_processors_wraps_when_ready(monkeypatch):
+    """_attach_post_processors wraps synthesize() when a util is ready."""
+    import numpy as np
+    from revospeech.registry.manifest import ModelManifest
+    from revospeech.registry.registry import _models, register, list_models
+    from revospeech.tts import _attach_post_processors
+    from revospeech.tts.base import BaseTTS
+    from revospeech.tts.result import Audio
+
+    saved = dict(_models)
+    _models.clear()
+    register(
+        ModelManifest(
+            name="sidon",
+            task="util",
+            backend="sidon",
+            model_type="restoration",
+            model_url="org/m",
+            sample_rate=48000,
+            language="",
+            description="",
+            files={"predictor": "p.onnx", "vocoder": "v.onnx"},
+            tags=["tts-postprocess"],
+        )
+    )
+
+    class FakeTTS(BaseTTS):
+        def __init__(self):
+            super().__init__("fake")
+            self._post_processors = []
+
+        def synthesize(self, text, output_path=None, **kwargs):
+            return Audio(samples=np.array([0.5], dtype=np.float32), sample_rate=16000)
+
+    class FakeUtil:
+        model_name = "sidon"
+
+        def restore(self, audio):
+            return Audio(
+                samples=audio.samples * 3,
+                sample_rate=audio.sample_rate,
+            )
+
+    try:
+        # Force status check to return "ready"
+        import revospeech.registry.status as status_mod
+
+        class Ready:
+            status = "ready"
+
+        monkeypatch.setattr(
+            status_mod, "check_model", lambda *a, **kw: Ready()
+        )
+
+        from revospeech.util import Util  # noqa: F401
+
+        import revospeech.util as util_mod
+
+        monkeypatch.setattr(util_mod, "Util", lambda *a, **kw: FakeUtil())
+
+        engine = FakeTTS()
+        wrapped = _attach_post_processors(engine, "cpu")
+        assert wrapped is engine
+        assert len(wrapped._post_processors) == 1
+
+        audio = wrapped.synthesize("hi")
+        # Samples should be tripled by FakeUtil.restore
+        assert np.allclose(audio.samples, np.array([1.5], dtype=np.float32))
+    finally:
+        _models.clear()
+        _models.update(saved)
+
+
+def test_sidonutil_init_loads_manifest():
+    """SidonUtil constructor fetches the registered manifest."""
+    from revospeech.registry.registry import _load_builtin_manifests, _models
+    from revospeech.util.sidon_engine import SidonUtil
+
+    if not any(m.name == "sidon" and m.task == "util" for m in _models.values()):
+        _load_builtin_manifests()
+
+    util = SidonUtil("sidon", device="cpu")
+    assert util.manifest.name == "sidon"
+    assert util.manifest.task == "util"
+    assert util._predictor_session is None  # not loaded yet
+
+
+def test_sidonutil_resample_linear_scales_length_proportionally():
+    """_resample_linear halves sample count when downsampled 2x."""
+    import numpy as np
+    from revospeech.util.sidon_engine import _resample_linear
+
+    samples = np.arange(16000, dtype=np.float32)
+    out = _resample_linear(samples, 16000, 8000)
+    assert len(out) == 8000

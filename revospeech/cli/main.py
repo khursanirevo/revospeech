@@ -68,7 +68,27 @@ def _installed_status_text(is_installed: bool) -> str:
     return click.style("↓ not installed", fg="yellow")
 
 
-@click.group()
+def _confirm_download_size(manifest) -> bool:
+    """Prompt the user to confirm a download if its size is known.
+
+    Returns True if the download should proceed, False to abort.
+    Skips the prompt when size is unknown, input is not a TTY (piped/CI),
+    or REVOSPEECH_YES is set.
+    """
+    if os.environ.get("REVOSPEECH_YES"):
+        return True
+    if not sys.stdin.isatty():
+        return True
+    size_mb = getattr(manifest, "size_mb", None)
+    if not size_mb:
+        return True
+    return click.confirm(
+        f"About to download '{manifest.name}' ({size_mb:.0f} MB). Continue?",
+        default=True,
+    )
+
+
+@click.group(invoke_without_command=True)
 @click.version_option()
 @click.option("--verbose", "-v", is_flag=True, help="Enable debug logging.")
 @click.option(
@@ -89,6 +109,12 @@ def cli(ctx, verbose, quiet) -> None:
     else:
         logging.getLogger("revospeech").setLevel(logging.INFO)
     ctx.ensure_object(dict)
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
+        click.echo(
+            "\nFirst time? Run `revospeech setup` for an interactive wizard, "
+            "or `revospeech info` to see current state."
+        )
 
 
 @cli.command()
@@ -279,6 +305,12 @@ def transcribe(
     help="Reference audio for voice cloning",
 )
 @click.option("--ref-text", help="Transcription of reference audio")
+@click.option(
+    "--restore",
+    is_flag=True,
+    default=False,
+    help="Apply speech-restoration post-processing (Sidon) to output",
+)
 def synthesize(
     model: str,
     text: str | None,
@@ -288,6 +320,7 @@ def synthesize(
     speed: float,
     ref_audio: str | None,
     ref_text: str | None,
+    restore: bool,
 ) -> None:
     """Synthesize speech from text.
 
@@ -318,7 +351,7 @@ def synthesize(
 
         output_dir = str(Path(output).parent) if output else "tts_output"
         try:
-            tts = TTS(model)
+            tts = TTS(model, restore=restore)
             report = tts.synthesize_batch(
                 texts,
                 output_dir=output_dir,
@@ -373,7 +406,7 @@ def synthesize(
 
         assert text is not None
 
-        tts = TTS(model)
+        tts = TTS(model, restore=restore)
 
         # Auto-detect long text and use synthesize_long
         if len(text) > 500:
@@ -423,6 +456,55 @@ def synthesize(
 
 
 @cli.command()
+@click.option(
+    "--model", "-m", default="sidon", help="Util model name (default: sidon)"
+)
+@click.option(
+    "--input",
+    "-i",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True),
+    help="Input audio file",
+)
+@click.option(
+    "--output", "-o", required=True, type=click.Path(), help="Output audio path"
+)
+def restore(model: str, input_path: str, output: str) -> None:
+    """Restore / enhance speech audio using a util model.
+
+    Applies speech restoration (denoise + dereverberation + bandwidth extension)
+    to the input audio. Default model is 'sidon', which produces 48 kHz output.
+
+    Examples:
+
+        revospeech restore -i in.wav -o out.wav
+        revospeech restore -m sidon -i in.wav -o out.wav
+    """
+    from revospeech.exceptions import RevosError
+    from revospeech.util import Util
+
+    try:
+        util = Util(model)
+        audio = util.restore_file(input_path, output)
+        click.echo(
+            f"Restored '{input_path}' -> '{output}' "
+            f"({len(audio.samples)} samples @ {audio.sample_rate} Hz)"
+        )
+    except RevosError as e:
+        click.echo(_format_error("Restore error", e), err=True)
+        raise SystemExit(1)
+    except Exception as e:
+        click.echo(
+            f"Unexpected error ({type(e).__name__}): {e}\n\n"
+            f"Suggestion: run 'revospeech models' to verify '{model}' is downloaded, "
+            f"or 'revospeech --verbose restore ...' for a full traceback.",
+            err=True,
+        )
+        raise SystemExit(1)
+
+
+@cli.command()
 @click.option("--task", "-t", help="Filter by task (asr/tts)")
 @click.option("--mode", "-m", help="Filter by mode (local/api)")
 @click.option("--status", "-s", "status_filter", help="Filter by status")
@@ -460,6 +542,10 @@ def models(
             )
             raise SystemExit(1)
         manifest = matches[0]
+
+        if not _confirm_download_size(manifest):
+            click.echo("Aborted.")
+            return
 
         click.echo(f"Downloading {download_name}...")
         ensure_model(manifest)
@@ -612,6 +698,16 @@ def info() -> None:
 
     click.echo(f"Catalog repo: {get_catalog_repo()}")
 
+    # Actionable hint for fresh installs: no ready models → suggest setup.
+    from revospeech.registry.status import list_model_statuses
+
+    ready = list_model_statuses(status="ready")
+    if not ready:
+        click.echo(
+            "\nNo models installed yet. Run `revospeech setup` to pick and "
+            "download your first model, or `revospeech catalog list` to browse."
+        )
+
 
 @cli.command()
 def setup() -> None:
@@ -658,9 +754,12 @@ def setup() -> None:
                     err=True,
                 )
             else:
-                click.echo(f"Downloading {name}...")
-                ensure_model(matches[0])
-                click.echo(f"Done. {name} is ready.")
+                if not _confirm_download_size(matches[0]):
+                    click.echo("Skipped.")
+                else:
+                    click.echo(f"Downloading {name}...")
+                    ensure_model(matches[0])
+                    click.echo(f"Done. {name} is ready.")
         except Exception as e:
             click.echo(f"Error ({type(e).__name__}): {e}", err=True)
 

@@ -6,24 +6,41 @@
 
 A unified Python library for speech AI — ASR and TTS using open models.
 
-## Quickstart
+## First 60 seconds
 
 ```bash
 pip install revospeech
+revospeech setup            # interactive: pick a task, download a model
+revospeech info             # verify install state
 ```
+
+Then transcribe or synthesize:
+
+```bash
+# Transcribe (uses the model you just installed)
+revospeech transcribe -m zipformer-v2 --format srt meeting.wav > meeting.srt
+
+# Synthesize (requires `pip install revospeech[tts]` for the vits/revovoice backend)
+revospeech synthesize -m vits-ms -t "Hello, world!" -o out.wav
+```
+
+Or from Python:
 
 ```python
 from revospeech import ASR, TTS
 
-# Transcribe
-result = ASR().transcribe("audio.wav")
-print(result.text)
+# Pass an explicit model name — models auto-download on first use
+asr = ASR('zipformer-v2')
+print(asr.transcribe("audio.wav").text)
 
-# Synthesize
-TTS().synthesize("Hello, world!").save("out.wav")
+tts = TTS('vits-ms')
+tts.synthesize("Hello, world!").save("out.wav")
 ```
 
-That's it. Models auto-download on first use.
+> **Note:** `ASR()` / `TTS()` with no arguments auto-selects from models that are
+> **already downloaded** — they don't auto-pick-and-download. Run `revospeech setup`
+> first, or pass an explicit model name like `ASR('zipformer-v2')` to trigger
+> auto-download. Browse available models with `revospeech catalog list`.
 
 ## Installation
 
@@ -44,9 +61,10 @@ pip install revospeech[all]
 uv add revospeech
 ```
 
-### HuggingFace Login (Required for TTS)
+### HuggingFace Login (Required for some TTS models)
 
-> **Note:** The RevoVoice TTS model is hosted on a private HuggingFace repository. You **must** log in before using TTS.
+> **Note:** Some TTS models (e.g. `revovoice`) are hosted on a gated HuggingFace
+> repository. You **must** log in before downloading them.
 
 ```bash
 pip install huggingface-hub
@@ -57,8 +75,25 @@ Get your token at https://huggingface.co/settings/tokens
 
 ### Important Notes
 
-- `revospeech[gpu]` and `revospeech[all]` install `onnxruntime-gpu`, which **conflicts** with `onnxruntime`. If you already have `revospeech` installed, uninstall it first before installing the GPU variant before installing the GPU variant.
+- `revospeech[gpu]` and `revospeech[all]` install `onnxruntime-gpu`, which **conflicts** with the plain `onnxruntime` package. If you already have `revospeech` installed, uninstall it first before switching to the GPU variant.
 - Audio formats supported: WAV, FLAC, OGG, and any format supported by `libsndfile`.
+
+### CLI command map
+
+| Command | Purpose |
+|---|---|
+| `revospeech setup` | Interactive first-run wizard — pick a task, download a model |
+| `revospeech info` | Show version, device, cache size, API key status |
+| `revospeech catalog list` | Browse models in the **remote** catalog registry |
+| `revospeech catalog pull <name>` | Install a model manifest from the remote catalog |
+| `revospeech models` | List **locally registered** models and their status |
+| `revospeech models --download <name>` | Download files for an already-registered local model |
+| `revospeech transcribe` / `synthesize` / `restore` | Run a task |
+
+> **`catalog pull` vs `models --download`**: `catalog pull` fetches a *new* model
+> definition from the remote catalog registry (adds it to your local registry);
+> `models --download` downloads the files for a model whose definition is *already*
+> registered locally (built-in or previously pulled).
 
 ## Quick Start
 
@@ -446,7 +481,6 @@ revospeech catalog pull revovoice
 
 - [AGENTS.md](AGENTS.md) — Architecture guide for AI agents and contributors
 - [CONTRIBUTING.md](CONTRIBUTING.md) — How to contribute
-- [TODO.md](TODO.md) — Full backlog and roadmap
 
 ## Project Structure
 

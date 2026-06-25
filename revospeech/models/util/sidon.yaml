@@ -1,0 +1,25 @@
+name: sidon
+task: util
+backend: sidon
+model_type: speech_restoration
+model_url: soniqo/Sidon-ONNX
+sample_rate: 48000
+language: ""
+description: "Sidon ONNX speech restoration model. Denoises, dereverberates, and performs bandwidth extension on any input speech. Built on w2v-BERT 2.0 + DAC vocoder. Auto-applied as post-processor to TTS output when present."
+mode: local
+hf_private: false
+size_mb: 940.0
+capabilities:
+  - denoise
+  - dereverberation
+  - bandwidth-extension
+tags:
+  - speech-restoration
+  - postprocess
+  - tts-postprocess
+  - onnx
+license: ""
+files:
+  predictor: fp32/sidon-predictor.onnx
+  vocoder: fp32/sidon-vocoder.onnx
+quality_notes: "Input: 16kHz mono. Output: 48kHz mono. Latency ~real-time on CPU after warmup."

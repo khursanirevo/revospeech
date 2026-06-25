@@ -135,7 +135,7 @@ def ASR(
             f" Run 'revospeech models' to list available models."
         ) from None
 
-    # API-mode gate: validate key, then raise (API engine not yet implemented)
+    # API-mode gate: validate key, then dispatch to the API engine.
     if manifest.is_api:
         from revospeech.config import get_api_key
         from revospeech.exceptions import RevosConfigError
@@ -149,9 +149,15 @@ def ASR(
                     " or run: revos config set-api-key"
                 ),
             )
-        raise NotImplementedError(
-            f"API backend for '{model_name}' is not yet implemented. "
-            f"Contributing guide: see CONTRIBUTING.md"
+
+        if manifest.backend == "revolab":
+            from .revolab_engine import RevolabASR
+
+            return RevolabASR(model_name, device=device)
+
+        raise ValueError(
+            f"Unsupported API backend: '{manifest.backend}' for model "
+            f"'{model_name}'. Supported API backends: revolab"
         )
 
     # Validate backend before attempting download — fail fast on typos.

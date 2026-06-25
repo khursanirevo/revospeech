@@ -322,8 +322,8 @@ def test_asr_api_mode_no_key_raises_config_error(monkeypatch):
         ASR("api-asr")
 
 
-def test_asr_api_mode_with_key_raises_not_implemented(monkeypatch):
-    """API-mode ASR with key set → NotImplementedError."""
+def test_asr_api_mode_with_key_dispatches_to_revolab(monkeypatch):
+    """API-mode ASR with key set dispatches to RevolabASR engine."""
     from revospeech.registry.manifest import ModelManifest
     from revospeech.registry.registry import register
 
@@ -340,11 +340,22 @@ def test_asr_api_mode_with_key_raises_not_implemented(monkeypatch):
             mode="api",
         )
     )
+    # Patch where http_client looks up the key (module-level import binding).
+    monkeypatch.setattr(
+        "revospeech.http_client.get_api_key", lambda *a, **kw: "rv-test12345"
+    )
+    # Also patch the factory-side gate check.
     monkeypatch.setattr(
         "revospeech.config.get_api_key", lambda *a, **kw: "rv-test12345"
     )
+    # Stub the network client so no real HTTP request is made.
+    monkeypatch.setattr(
+        "revospeech.asr.revolab_engine.RevolabClient",
+        lambda *a, **kw: object(),
+    )
 
     from revospeech.asr import ASR
+    from revospeech.asr.revolab_engine import RevolabASR
 
-    with pytest.raises(NotImplementedError, match="not yet implemented"):
-        ASR("api-asr")
+    engine = ASR("api-asr")
+    assert isinstance(engine, RevolabASR)

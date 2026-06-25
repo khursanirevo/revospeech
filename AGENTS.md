@@ -27,9 +27,9 @@ The library has a hybrid local + API architecture ready for extension. Local inf
 - Branch rename (`master` → `main` decision)
 
 **Reference files:**
-- `TODO.md` — full backlog (189 items across 9 phases)
-- `PLAN.md` — Architect + Critic approved consensus plan with RALPLAN-DR
-- `REPO_ANALYSIS/` — detailed codebase analysis (9 files, 4,343 lines)
+- `README.md` — user-facing quickstart and command map
+- `AGENTS.md` — this file; backend extension guide
+- `CONTRIBUTING.md` — contribution workflow
 
 ---
 

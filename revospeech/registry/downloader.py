@@ -150,6 +150,17 @@ def ensure_model(manifest: ModelManifest) -> Path:
 
     model_dir.mkdir(parents=True, exist_ok=True)
     url = manifest.model_url
+
+    # HuggingFace org/repo shorthand (e.g. "Revolab/revovoice") or gated models
+    # route through snapshot_download, not the plain HTTP downloader.
+    looks_like_hf_repo = "://" not in url and "/" in url and not url.startswith("/")
+    if manifest.hf_private or looks_like_hf_repo:
+        from revospeech.hf_utils import download_gated_model
+
+        download_gated_model(url, model_dir)
+        logger.info("Model %s ready at %s", manifest.name, model_dir)
+        return model_dir
+
     archive_name = url.split("/")[-1]
     archive_path = model_dir / archive_name
 

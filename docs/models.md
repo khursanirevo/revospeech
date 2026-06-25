@@ -51,8 +51,7 @@ existing backends, new local backend engine, or new API backend.
 ## Benchmarks
 
 Quantitative benchmarks (WER for ASR, MOS for TTS, RTF for both) will be
-published here once a reproducible benchmark harness lands. Tracked in
-[TODO.md](https://github.com/khursanirevo/revospeech/blob/master/TODO.md) Phase 7.1.
+published here once a reproducible benchmark harness lands.
 
 ## See also
 
