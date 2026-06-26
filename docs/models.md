@@ -24,8 +24,8 @@ This page lists models shipped with RevoSpeech. For live status (installed / nee
 
 | Model | Backend | Languages | Size | Capabilities | License | Notes |
 |-------|---------|-----------|------|--------------|---------|-------|
-| `revovoice` | RevoVoice (diffusion) | 600+ (multilingual) | ~1.2 GB | `voice-cloning`, `streaming` | MIT (code) | Zero-shot cloning; GPU recommended; gated HF repo |
-| `vits-ms` | VITS | Malay (`ms`) | ~500 MB | `multi-speaker` | — | 3 production speakers: sarah, paan, anwar |
+| [`revovoice`](models/revovoice.md) | RevoVoice (diffusion) | 600+ (multilingual) | ~1.2 GB | `voice-cloning`, `streaming` | MIT (code) | Zero-shot cloning; GPU recommended; gated HF repo |
+| [`vits-ms`](models/vits-ms.md) | VITS | Malay (`ms`) | ~500 MB | `multi-speaker` | — | 3 production speakers: sarah, paan, anwar |
 
 ### Roadmap
 
@@ -38,7 +38,7 @@ This page lists models shipped with RevoSpeech. For live status (installed / nee
 
 | Model | Backend | Languages | Size | Capabilities | Notes |
 |-------|---------|-----------|------|--------------|-------|
-| `sidon` | sidon (ONNX) | — | ~940 MB | `denoise`, `dereverberation`, `bandwidth-extension` | 3-stage pipeline (mel -> w2v-BERT 2.0 -> DAC); output 48 kHz; mel front-end bundled |
+| [`sidon`](models/sidon.md) | sidon (ONNX) | — | ~940 MB | `denoise`, `dereverberation`, `bandwidth-extension` | 3-stage pipeline (mel -> w2v-BERT 2.0 -> DAC); output 48 kHz; mel front-end bundled |
 
 Use standalone via `revospeech restore`, or as TTS post-processing via
 `TTS(..., restore=True)`. See [Speech Restoration](util.md).

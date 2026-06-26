@@ -39,6 +39,10 @@ nav:
   - Configuration: configuration.md
   - Extension Guide: extension.md
   - Model Catalog: models.md
+  - Models:
+      - vits-ms: models/vits-ms.md
+      - revovoice: models/revovoice.md
+      - sidon: models/sidon.md
   - Speech Restoration: util.md
   - API Reference:
       - Overview: api.md
