@@ -56,9 +56,10 @@ class SidonUtil(BaseUtil):
         self._vocoder_session: ort.InferenceSession | None = None
 
     def _ensure_downloaded(self) -> Path:
-        if self._model_dir is not None and (
-            self._model_dir / self.manifest.files["predictor"]
-        ).exists():
+        if (
+            self._model_dir is not None
+            and (self._model_dir / self.manifest.files["predictor"]).exists()
+        ):
             return self._model_dir
 
         from revospeech.hf_utils import download_gated_model
@@ -87,9 +88,7 @@ class SidonUtil(BaseUtil):
         if self.device == "cuda":
             providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
 
-        self._mel_session = ort.InferenceSession(
-            str(mel_path), providers=providers
-        )
+        self._mel_session = ort.InferenceSession(str(mel_path), providers=providers)
         self._predictor_session = ort.InferenceSession(
             str(predictor_path), providers=providers
         )
@@ -98,7 +97,9 @@ class SidonUtil(BaseUtil):
         )
         logger.info(
             "Sidon loaded (mel=%s, predictor=%s, vocoder=%s)",
-            mel_path.name, predictor_path.name, vocoder_path.name,
+            mel_path.name,
+            predictor_path.name,
+            vocoder_path.name,
         )
 
     def restore(self, audio: Audio) -> Audio:
@@ -125,7 +126,8 @@ class SidonUtil(BaseUtil):
 
         # Stage 1: mel front-end
         mel_out = self._mel_session.run(
-            ["features"], {"audio": samples},
+            ["features"],
+            {"audio": samples},
         )[0]  # [1, T, 160]
 
         # Stage 2: predictor (w2v-BERT 2.0)

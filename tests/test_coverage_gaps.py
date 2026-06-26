@@ -1456,9 +1456,7 @@ def test_attach_post_processors_wraps_when_ready(monkeypatch):
         class Ready:
             status = "ready"
 
-        monkeypatch.setattr(
-            status_mod, "check_model", lambda *a, **kw: Ready()
-        )
+        monkeypatch.setattr(status_mod, "check_model", lambda *a, **kw: Ready())
 
         import revospeech.util as util_mod
         from revospeech.util import Util  # noqa: F401

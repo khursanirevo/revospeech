@@ -212,7 +212,8 @@ def _attach_post_processors(engine: BaseTTS, device: str) -> BaseTTS:
         from revospeech.util import Util
 
         candidates = [
-            m for m in list_models()
+            m
+            for m in list_models()
             if m.task == "util" and "tts-postprocess" in (m.tags or [])
         ]
         ready: list = []
@@ -231,7 +232,8 @@ def _attach_post_processors(engine: BaseTTS, device: str) -> BaseTTS:
                 post_processors.append(Util(m.name, device=device, auto_download=False))
                 logger.info(
                     "Attached post-processor '%s' to TTS engine '%s'",
-                    m.name, engine.model_name,
+                    m.name,
+                    engine.model_name,
                 )
             except Exception as e:
                 logger.warning("Failed to load util '%s': %s", m.name, e)
@@ -259,7 +261,8 @@ def _attach_post_processors(engine: BaseTTS, device: str) -> BaseTTS:
                 except Exception as e:
                     logger.warning(
                         "Post-processor '%s' failed: %s — returning unenhanced audio",
-                        proc.model_name, e,
+                        proc.model_name,
+                        e,
                     )
                     return audio
             if output_path:

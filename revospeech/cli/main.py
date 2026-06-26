@@ -456,9 +456,7 @@ def synthesize(
 
 
 @cli.command()
-@click.option(
-    "--model", "-m", default="sidon", help="Util model name (default: sidon)"
-)
+@click.option("--model", "-m", default="sidon", help="Util model name (default: sidon)")
 @click.option(
     "--input",
     "-i",
