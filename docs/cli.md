@@ -37,7 +37,28 @@ revospeech synthesize -m revovoice -f script.txt -o book.wav
 
 # Batch from file list (one text per line)
 revospeech synthesize -m revovoice --file-list inputs.txt -o output/
+
+# Apply speech restoration post-processing (Sidon)
+revospeech synthesize -m vits-ms -t "Hello!" -o out.wav --restore
 ```
+
+`--restore` is opt-in. When set, any ready util model tagged
+`tts-postprocess` (e.g. Sidon) runs after synthesis. See
+[Speech Restoration](util.md).
+
+### restore
+
+```bash
+# Restore / enhance speech (default model: sidon)
+revospeech restore -i noisy.wav -o clean.wav
+
+# Explicit model
+revospeech restore -m sidon -i noisy.wav -o clean.wav
+```
+
+Applies denoise + dereverberation + bandwidth extension. Input at any sample
+rate is resampled to 16 kHz internally; output is 48 kHz. See
+[Speech Restoration](util.md).
 
 ### models
 
@@ -48,6 +69,9 @@ revospeech models --task asr
 revospeech models --download <name>  # pre-download a model
 revospeech models-info <name>     # detailed info
 ```
+
+Downloads over 50 MB prompt for confirmation in interactive terminals;
+set `REVOSPEECH_YES=1` to skip the prompt in scripts/CI.
 
 ### catalog
 

@@ -1,15 +1,29 @@
 # Quickstart
 
-## Install
+## First 60 seconds
 
 ```bash
 pip install revospeech
+revospeech setup            # interactive: pick a task, download a model
+revospeech info             # verify install state
+```
 
-# With TTS support
-pip install revospeech[tts]
+`revospeech setup` walks you through picking a task (ASR / TTS / both),
+shows you the available models with status icons, and installs one. It also
+offers to configure an API key for cloud backends.
 
-# Everything (GPU + TTS)
-pip install revospeech[all]
+> **Note:** `ASR()` and `TTS()` with no arguments auto-select from models
+> that are **already downloaded** — they don't auto-pick-and-download.
+> Run `revospeech setup` first, or pass an explicit model name like
+> `ASR('zipformer-v2')` to trigger auto-download.
+
+## Install variants
+
+```bash
+pip install revospeech                # core (ASR + speech restoration)
+pip install revospeech[tts]           # adds RevoVoice (requires PyTorch)
+pip install revospeech[gpu]           # ONNX Runtime GPU
+pip install revospeech[all]           # GPU + TTS + API + playback
 ```
 
 ## Transcribe audio
@@ -17,8 +31,8 @@ pip install revospeech[all]
 ```python
 from revospeech import ASR
 
-# Auto-selects smallest ready model
-asr = ASR()
+# Explicit model name auto-downloads on first use
+asr = ASR("zipformer-v2")
 result = asr.transcribe("meeting.wav")
 
 print(result.text)
@@ -36,9 +50,13 @@ result.save("meeting.srt")  # or .vtt, .json, .txt
 ```python
 from revospeech import TTS
 
-tts = TTS()
+tts = TTS("vits-ms")
 audio = tts.synthesize("Hello, how are you?")
 audio.save("greeting.wav")
+
+# Apply speech restoration (denoise + dereverb + 48 kHz bandwidth)
+tts = TTS("vits-ms", restore=True)
+audio = tts.synthesize("Hello, how are you?")
 
 # Playback (requires sounddevice)
 audio.play()

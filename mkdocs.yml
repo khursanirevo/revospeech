@@ -1,5 +1,5 @@
 site_name: RevoSpeech
-site_description: A unified Python library for speech AI — ASR and TTS using open models.
+site_description: A unified Python library for speech AI — ASR, TTS, and speech restoration using open models.
 site_url: https://khursanirevo.github.io/revospeech/
 repo_url: https://github.com/khursanirevo/revospeech
 repo_name: khursanirevo/revospeech
@@ -39,10 +39,12 @@ nav:
   - Configuration: configuration.md
   - Extension Guide: extension.md
   - Model Catalog: models.md
+  - Speech Restoration: util.md
   - API Reference:
       - Overview: api.md
       - ASR: api/asr.md
       - TTS: api/tts.md
+      - Util: api/util.md
       - Registry: api/registry.md
       - Result Types: api/results.md
       - CLI: api/cli.md

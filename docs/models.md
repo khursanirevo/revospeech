@@ -6,9 +6,10 @@ This page lists models shipped with RevoSpeech. For live status (installed / nee
 
 ## ASR — Speech Recognition
 
-| Model | Backend | Languages | Size | Capabilities | License | Notes |
-|-------|---------|-----------|------|--------------|---------|-------|
-| `zipformer-v2` | sherpa-onnx (Zipformer transducer) | English | ~80 MB | `word-timestamps` | Apache-2.0 | Fast, CPU-friendly, English-only |
+| Model | Backend | Mode | Languages | Size | Capabilities | License | Notes |
+|-------|---------|------|-----------|------|--------------|---------|-------|
+| `zipformer-v2` | sherpa-onnx (Zipformer transducer) | local | English | ~80 MB | `word-timestamps` | Apache-2.0 | Fast, CPU-friendly, English-only |
+| `revolab-asr` | revolab (cloud) | api | `ms`, `en` | — | `streaming`, code-switching | — | Cloud ASR via revolab API; handles Malaysian + EN code-switch; requires `REVOLAB_API_KEY` |
 
 ### Roadmap
 
@@ -30,6 +31,17 @@ This page lists models shipped with RevoSpeech. For live status (installed / nee
 
 - Kokoro TTS (if license permits) — under evaluation
 - Language-specific models for major languages — planned
+
+---
+
+## Util — Speech Restoration
+
+| Model | Backend | Languages | Size | Capabilities | Notes |
+|-------|---------|-----------|------|--------------|-------|
+| `sidon` | sidon (ONNX) | — | ~940 MB | `denoise`, `dereverberation`, `bandwidth-extension` | 3-stage pipeline (mel -> w2v-BERT 2.0 -> DAC); output 48 kHz; mel front-end bundled |
+
+Use standalone via `revospeech restore`, or as TTS post-processing via
+`TTS(..., restore=True)`. See [Speech Restoration](util.md).
 
 ---
 
