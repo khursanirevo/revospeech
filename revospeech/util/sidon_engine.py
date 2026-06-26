@@ -104,6 +104,9 @@ class SidonUtil(BaseUtil):
     def restore(self, audio: Audio) -> Audio:
         """Restore / enhance an Audio input. Returns Audio at 48 kHz."""
         self._load_sessions()
+        assert self._mel_session is not None
+        assert self._predictor_session is not None
+        assert self._vocoder_session is not None
 
         samples = audio.samples.astype(np.float32, copy=False)
         if samples.ndim > 1:

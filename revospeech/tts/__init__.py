@@ -66,6 +66,7 @@ def TTS(
     device: str = "auto",
     api_key: str | None = None,
     auto_download: bool = True,
+    restore: bool = False,
 ) -> BaseTTS: ...
 
 
@@ -76,6 +77,7 @@ def TTS(
     device: str = "auto",
     api_key: str | None = None,
     auto_download: bool = True,
+    restore: bool = False,
 ) -> BaseTTS: ...
 
 
@@ -191,7 +193,7 @@ def TTS(
     if manifest.backend == "revovoice":
         from .revovoice_engine import RevoVoiceTTS
 
-        engine = RevoVoiceTTS(model_name, device)
+        engine: BaseTTS = RevoVoiceTTS(model_name, device)
     else:
         from .vits_engine import VitsTTS
 
@@ -236,7 +238,7 @@ def _attach_post_processors(engine: BaseTTS, device: str) -> BaseTTS:
         if not post_processors:
             return engine
 
-        engine._post_processors = post_processors
+        setattr(engine, "_post_processors", post_processors)
         original_synthesize = engine.synthesize
 
         import inspect

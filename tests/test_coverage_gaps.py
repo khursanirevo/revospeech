@@ -1283,10 +1283,11 @@ def test_baseutil_requires_restore_method():
 
 def test_attach_post_processors_safe_with_no_ready(monkeypatch):
     """_attach_post_processors returns engine unchanged when no ready util."""
+    import numpy as np
+
     from revospeech.tts import _attach_post_processors
     from revospeech.tts.base import BaseTTS
     from revospeech.tts.result import Audio
-    import numpy as np
 
     class FakeEngine(BaseTTS):
         def __init__(self):
@@ -1309,8 +1310,9 @@ def test_attach_post_processors_safe_with_no_ready(monkeypatch):
 
 def test_sidonutil_resample_linear_is_identity_at_same_rate():
     """_resample_linear is a no-op when source and dest rates match."""
-    from revospeech.util.sidon_engine import _resample_linear
     import numpy as np
+
+    from revospeech.util.sidon_engine import _resample_linear
 
     samples = np.array([0.1, -0.2, 0.3, 0.0], dtype=np.float32)
     out = _resample_linear(samples, 16000, 16000)
@@ -1377,6 +1379,7 @@ def test_baseutil_restore_file_roundtrip(tmp_path):
     """BaseUtil.restore_file() reads audio, calls restore, writes output."""
     import numpy as np
     import soundfile as sf
+
     from revospeech.tts.result import Audio
     from revospeech.util.base import BaseUtil
 
@@ -1405,8 +1408,9 @@ def test_baseutil_restore_file_roundtrip(tmp_path):
 def test_attach_post_processors_wraps_when_ready(monkeypatch):
     """_attach_post_processors wraps synthesize() when a util is ready."""
     import numpy as np
+
     from revospeech.registry.manifest import ModelManifest
-    from revospeech.registry.registry import _models, register, list_models
+    from revospeech.registry.registry import _models, register
     from revospeech.tts import _attach_post_processors
     from revospeech.tts.base import BaseTTS
     from revospeech.tts.result import Audio
@@ -1456,9 +1460,8 @@ def test_attach_post_processors_wraps_when_ready(monkeypatch):
             status_mod, "check_model", lambda *a, **kw: Ready()
         )
 
-        from revospeech.util import Util  # noqa: F401
-
         import revospeech.util as util_mod
+        from revospeech.util import Util  # noqa: F401
 
         monkeypatch.setattr(util_mod, "Util", lambda *a, **kw: FakeUtil())
 
@@ -1492,6 +1495,7 @@ def test_sidonutil_init_loads_manifest():
 def test_sidonutil_resample_linear_scales_length_proportionally():
     """_resample_linear halves sample count when downsampled 2x."""
     import numpy as np
+
     from revospeech.util.sidon_engine import _resample_linear
 
     samples = np.arange(16000, dtype=np.float32)
