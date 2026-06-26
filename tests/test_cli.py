@@ -24,9 +24,11 @@ def test_cli_help(runner: CliRunner):
 
 
 def test_cli_version(runner: CliRunner):
+    from revospeech import __version__
+
     result = runner.invoke(cli, ["--version"])
     assert result.exit_code == 0
-    assert "0.1.1" in result.output
+    assert __version__ in result.output
 
 
 def test_transcribe_help(runner: CliRunner):

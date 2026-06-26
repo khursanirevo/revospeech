@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-26
+
 ### Added
+- Speech restoration util model (Sidon): denoise + dereverberation + bandwidth
+  extension via a 3-stage ONNX pipeline (mel front-end -> w2v-BERT 2.0
+  predictor -> DAC vocoder).
+- New `util` task category in the manifest registry, parallel to `asr`/`tts`.
+  `Util()` factory + `BaseUtil` ABC with `restore(audio)` interface.
+- `revospeech restore -i in.wav -o out.wav` CLI subcommand for standalone use.
+- `restore=` kwarg on `TTS()` (default off) and `revospeech synthesize --restore`
+  opt-in flag to apply util post-processors to synthesis output.
+- Mel front-end ONNX (1.1 MB) bundled with the wheel via hatch force-include.
+- Cloud ASR backend wired up: `RevolabASR` engine now dispatched from the
+  factory when `backend: revolab` (was a `NotImplementedError` stub).
+- `revolab-asr` manifest (cloud ASR via private Qwen model).
+- Size-confirmation prompt before downloads (TTY-aware; skip with
+  `REVOSPEECH_YES=1`).
+- Bare `revospeech` prints a setup hint; `revospeech info` suggests
+  `revospeech setup` when no models are installed.
+- README "First 60 seconds" quickstart + CLI command map (catalog vs models).
 - Auto-download models on first use (`auto_download=True` on `ASR` / `TTS`).
 - `revospeech setup` interactive first-run wizard.
 - `revospeech config set-api-key` / `show-api-key` commands.
@@ -38,11 +57,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BaseASR` / `BaseTTS` subclassing, factory dispatch, and manifest registration.
 - Additional Phase 6 test coverage: corrupt/invalid audio, network errors,
   thread safety, base classes, top-level imports, non-WAV formats, edge cases.
-- Example scripts `01`-`12` (progressive, runnable).
+- Example scripts `01`-`11` (progressive, runnable).
 - mkdocs-material documentation site with mkdocstrings and GitHub Pages deploy.
-- `CODE_OF_CONDUCT.md`, `SECURITY.md`, GitHub issue/PR templates.
+- `CODE_OF_CONDUCT.md`, GitHub issue/PR templates.
 
 ### Changed
+- `TTS(restore=...)` default flipped to `False` (post-processing is opt-in).
+- HuggingFace download routing: `hf_private` manifest flag or `org/repo` URL
+  shorthand now route to `snapshot_download` instead of the HTTP downloader
+  that rejected non-`https://` URLs. Fixes revovoice download.
+- README rewritten to lead with `revospeech setup` and document the
+  `catalog pull` vs `models --download` distinction.
+- pyproject.toml description updated to mention speech restoration.
 - Catalog default repo updated from `khursanirevo/revospeech` to the revolab org.
 - VITS phonemization rewritten to be Piper-compatible (`--ipa=3`, PAD insertion).
 - RevoVoice production speaker list reduced to high-quality speakers.
@@ -53,11 +79,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VITS audio quality issues caused by malformed phoneme sequences.
 - Branch mismatch in CI (standardized on `master`).
 - `hf_user` type inconsistency in `usage.py` (now `str | None`).
+- Click artifact at the end of Sidon-enhanced audio (DAC vocoder cutoff
+  smoothed with a 5 ms fade).
 
 ### Removed
+- `SECURITY.md` (use GitHub Issues for vulnerability reports).
+- `TODO.md` (410-line internal planning doc; GitHub Issues is the venue).
+- 3 orphan example scripts (`asr_transcribe.py`, `tts_synthesize.py`,
+  `tts_voice_cloning.py`) that duplicated numbered examples.
+- `sherpa-onnx-core` redundant dependency (transitively pulled by sherpa-onnx).
 - Low-quality speakers from the RevoVoice production list.
 - Dead test fixtures (`mock_recognizer`, `mock_tts_model`) from `conftest.py`.
-- Stale planning artifacts (`PLAN.md`, `REPO_ANALYSIS`).
 
 ## [0.1.1] - 2025
 
@@ -142,6 +174,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Usage log file permissions set to `0o600`.
 - Tarball extraction uses `filter="data"`.
 
-[Unreleased]: https://github.com/revolab/revospeech/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/revolab/revospeech/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/revolab/revospeech/releases/tag/v0.2.0
 [0.1.1]: https://github.com/revolab/revospeech/releases/tag/v0.1.1
 [0.1.0]: https://github.com/revolab/revospeech/releases/tag/v0.1.0
