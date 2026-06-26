@@ -87,7 +87,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TODO.md` (410-line internal planning doc; GitHub Issues is the venue).
 - 3 orphan example scripts (`asr_transcribe.py`, `tts_synthesize.py`,
   `tts_voice_cloning.py`) that duplicated numbered examples.
-- `sherpa-onnx-core` redundant dependency (transitively pulled by sherpa-onnx).
 - Low-quality speakers from the RevoVoice production list.
 - Dead test fixtures (`mock_recognizer`, `mock_tts_model`) from `conftest.py`.
 
