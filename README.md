@@ -3,8 +3,10 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/khursanirevo/revospeech/ci.yml?branch=master)](.github/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://khursanirevo.github.io/revospeech/)
 
 A unified Python library for speech AI — ASR and TTS using open models.
+**Docs:** <https://khursanirevo.github.io/revospeech/>
 
 ## First 60 seconds
 
